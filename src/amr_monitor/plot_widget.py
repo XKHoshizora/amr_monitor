@@ -228,28 +228,23 @@ class PlotWidget(QWidget):
         """从回放数据更新图表"""
         # 更新IMU数据
         for axis in ['x', 'y', 'z']:
-            self.imu_data['angular_velocity'][axis] = np.roll(
-                self.imu_data['angular_velocity'][axis], -1)
-            self.imu_data['angular_velocity'][axis][-1] = data[f'imu_angular_{
-                axis}']
+            # 修复角速度数据更新
+            self.imu_data['angular_velocity'][axis] = np.roll(self.imu_data['angular_velocity'][axis], -1)
+            self.imu_data['angular_velocity'][axis][-1] = data[f'imu_angular_{axis}']
 
-            self.imu_data['linear_acceleration'][axis] = np.roll(
-                self.imu_data['linear_acceleration'][axis], -1)
-            self.imu_data['linear_acceleration'][axis][-1] = data[f'imu_linear_{
-                axis}']
+            # 修复线加速度数据更新
+            self.imu_data['linear_acceleration'][axis] = np.roll(self.imu_data['linear_acceleration'][axis], -1)
+            self.imu_data['linear_acceleration'][axis][-1] = data[f'imu_linear_{axis}']
 
         # 更新里程计数据
         for axis in ['x', 'y']:
-            self.odom_data['position'][axis] = np.roll(
-                self.odom_data['position'][axis], -1)
+            self.odom_data['position'][axis] = np.roll(self.odom_data['position'][axis], -1)
             self.odom_data['position'][axis][-1] = data[f'odom_pos_{axis}']
 
-        self.odom_data['velocity']['linear'] = np.roll(
-            self.odom_data['velocity']['linear'], -1)
+        self.odom_data['velocity']['linear'] = np.roll(self.odom_data['velocity']['linear'], -1)
         self.odom_data['velocity']['linear'][-1] = data['odom_vel_linear']
 
-        self.odom_data['velocity']['angular'] = np.roll(
-            self.odom_data['velocity']['angular'], -1)
+        self.odom_data['velocity']['angular'] = np.roll(self.odom_data['velocity']['angular'], -1)
         self.odom_data['velocity']['angular'][-1] = data['odom_vel_angular']
 
         # 更新图表
