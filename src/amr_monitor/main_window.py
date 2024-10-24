@@ -225,13 +225,15 @@ class MainWindow(QMainWindow):
     def show_playback(self):
         """显示数据回放窗口"""
         try:
-            if not hasattr(self, 'playback_widget'):
+            # 如果窗口已经被删除，则创建新窗口
+            if not hasattr(self, 'playback_widget') or not self.playback_widget.isVisible():
                 self.playback_widget = PlaybackWidget(
                     data_dir=self.data_dir,
                     parent=self
                 )
                 self.playback_widget.data_updated.connect(
                     self.plot_widget.update_from_playback)
+
             if self.playback_widget.isHidden():
                 self.playback_widget.show()
             else:
@@ -244,11 +246,13 @@ class MainWindow(QMainWindow):
     def show_analysis(self):
         """显示数据分析窗口"""
         try:
-            if not hasattr(self, 'analysis_widget'):
+            # 如果窗口已经被删除，则创建新窗口
+            if not hasattr(self, 'analysis_widget') or not self.analysis_widget.isVisible():
                 self.analysis_widget = AnalysisWidget(
                     data_dir=self.data_dir,
                     parent=self
                 )
+
             if self.analysis_widget.isHidden():
                 self.analysis_widget.show()
             else:

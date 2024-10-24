@@ -256,31 +256,43 @@ class PlotWidget(QWidget):
         if current_index < 0:
             return
 
+        # 获取当前标签页内容和标题
         tab = self.tab_widget.widget(current_index)
         title = self.tab_widget.tabText(current_index)
 
         # 创建新窗口
-        new_window = QMainWindow(self)
-        new_window.setAttribute(Qt.WA_DeleteOnClose)
+        new_window = QWidget()  # 改用 QWidget 而不是 QMainWindow
+        new_window.setAttribute(Qt.WA_DeleteOnClose, False)  # 不自动删除
         new_window.setWindowTitle(title)
-        new_window.setCentralWidget(tab)
-        new_window.resize(600, 400)
+
+        # 创建布局
+        layout = QVBoxLayout(new_window)
+        layout.addWidget(tab)
+
+        # 添加重新附加按钮
+        attach_btn = QPushButton("重新附加到主窗口")
+        attach_btn.clicked.connect(lambda: self.attach_tab(tab, title, new_window))
+        layout.addWidget(attach_btn)
 
         # 存储窗口引用
         self.detached_windows[title] = new_window
 
-        # 显示新窗口
-        new_window.show()
-
         # 从标签页中移除但不删除组件
         self.tab_widget.removeTab(current_index)
 
-    def attach_tab(self, tab, title):
+        # 显示新窗口
+        new_window.show()
+
+    def attach_tab(self, tab, title, window):
         """将标签页重新附加到主窗口"""
         if title in self.detached_windows:
-            window = self.detached_windows[title]
-            window.centralWidget().setParent(None)  # 将组件从窗口中移除
+            # 从布局中移除组件
+            tab.setParent(None)
+
+            # 重新添加到标签页
             self.tab_widget.addTab(tab, title)
+
+            # 关闭独立窗口
             window.close()
             del self.detached_windows[title]
 

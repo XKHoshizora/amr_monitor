@@ -152,7 +152,7 @@ class AnalysisWidget(QWidget):
                 result_text += f"  {name}: {value:.4f}\\n"
             result_text += "\\n"
 
-        self.result_text.setText(result_text)
+        self.result_text.setText(self.format_results(result_text))
 
         # 绘制直方图
         self.plot_widget.clear()
@@ -166,6 +166,10 @@ class AnalysisWidget(QWidget):
     def spectral_analysis(self, data):
         """频谱分析"""
         self.plot_widget.clear()
+
+        # 定义颜色映射
+        colors = {'x': (255, 0, 0), 'y': (0, 255, 0), 'z': (0, 0, 255),
+                'linear': (0, 255, 255), 'angular': (255, 0, 255)}
 
         # 对每个轴进行FFT分析
         for axis, values in data.items():
@@ -182,18 +186,13 @@ class AnalysisWidget(QWidget):
             pos_freq = freq[1:n//2]
             pos_magnitude = magnitude[1:n//2]
 
+            # 使用预定义的颜色
+            color = colors.get(axis, (128, 128, 128))  # 如果没有定义颜色，使用灰色
+
             # 绘制频谱
-            self.plot_widget.plot(pos_freq, pos_magnitude, pen=(axis),
-                                  name=f"{axis}轴")
-
-        self.plot_widget.setLabel('left', '幅度')
-        self.plot_widget.setLabel('bottom', '频率 (Hz)')
-
-        # 添加结果说明
-        self.result_text.setText("频谱分析结果:\\n\\n"
-                                 "图表显示了各轴数据的频率分布。\\n"
-                                 "横轴表示频率(Hz)，纵轴表示幅度。\\n"
-                                 "主要频率成分可以反映数据的周期性特征。")
+            self.plot_widget.plot(pos_freq, pos_magnitude,
+                            pen=color,
+                            name=f"{axis}轴")
 
     def correlation_analysis(self, data):
         """相关性分析"""
@@ -213,7 +212,7 @@ class AnalysisWidget(QWidget):
             result_text += f"  相关系数: {corr:.4f}\\n"
             result_text += f"  P值: {p_value:.4f}\\n\\n"
 
-        self.result_text.setText(result_text)
+        self.result_text.setText(self.format_results(result_text))
 
         # 绘制散点图
         self.plot_widget.clear()
@@ -261,7 +260,7 @@ class AnalysisWidget(QWidget):
                     result_text += "    ...\\n"
             result_text += "\\n"
 
-        self.result_text.setText(result_text)
+        self.result_text.setText(self.format_results(result_text))
 
         # 绘制异常检测图
         self.plot_widget.clear()
@@ -280,3 +279,21 @@ class AnalysisWidget(QWidget):
                     brush=pg.mkBrush(255, 0, 0, 200)
                 )
                 self.plot_widget.addItem(scatter)
+
+    def format_results(self, text):
+        """格式化结果文本"""
+        # 确保使用系统换行符
+        text = text.replace('\n', os.linesep)
+        # 添加适当的缩进
+        lines = text.split(os.linesep)
+        formatted_lines = []
+        indent = 0
+        for line in lines:
+            if line.strip().endswith(':'):
+                formatted_lines.append('  ' * indent + line)
+                indent += 1
+            else:
+                formatted_lines.append('  ' * indent + line)
+                if not line.strip():
+                    indent = max(0, indent - 1)
+        return os.linesep.join(formatted_lines)
