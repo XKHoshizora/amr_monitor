@@ -12,20 +12,24 @@ from geometry_msgs.msg import Twist
 class PlotWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.is_recording = False  # 添加记录状态标志
         self.setup_ui()
         self.setup_data_buffers()
         self.setup_subscribers()
 
     def setup_ui(self):
-        layout = QVBoxLayout(self)
+        main_layout = QVBoxLayout(self)
 
-        # 创建绘图容器
-        self.plots = {}
-        self.curves = {}
+        # 创建标签页组件
+        self.tab_widget = QTabWidget()
+        self.tab_widget.setTabsClosable(True)  # 允许关闭标签页
+        self.tab_widget.setMovable(True)  # 允许移动标签页
+        self.tab_widget.tabCloseRequested.connect(self.handle_tab_close)
+        main_layout.addWidget(self.tab_widget)
 
-        # IMU数据图表
-        imu_container = QGroupBox("IMU数据")
-        imu_layout = QVBoxLayout()
+        # IMU数据标签页
+        imu_widget = QWidget()
+        imu_layout = QVBoxLayout(imu_widget)
 
         # 角速度图表
         angular_plot = pg.PlotWidget(title='角速度')
@@ -51,12 +55,12 @@ class PlotWidget(QWidget):
         self.curves['linear_z'] = linear_plot.plot(pen='b', name='z轴')
         imu_layout.addWidget(linear_plot)
 
-        imu_container.setLayout(imu_layout)
-        layout.addWidget(imu_container)
+        # 添加IMU标签页
+        self.tab_widget.addTab(imu_widget, "IMU数据")
 
-        # 里程计数据图表
-        odom_container = QGroupBox("里程计数据")
-        odom_layout = QVBoxLayout()
+        # 里程计数据标签页
+        odom_widget = QWidget()
+        odom_layout = QVBoxLayout(odom_widget)
 
         velocity_plot = pg.PlotWidget(title='速度')
         velocity_plot.setBackground('w')
@@ -78,12 +82,12 @@ class PlotWidget(QWidget):
         self.curves['pos_y'] = position_plot.plot(pen='g', name='y')
         odom_layout.addWidget(position_plot)
 
-        odom_container.setLayout(odom_layout)
-        layout.addWidget(odom_container)
+        # 添加里程计标签页
+        self.tab_widget.addTab(odom_widget, "里程计数据")
 
-        # 激光雷达数据视图
-        scan_container = QGroupBox("激光雷达数据")
-        scan_layout = QVBoxLayout()
+        # 激光雷达数据标签页
+        scan_widget = QWidget()
+        scan_layout = QVBoxLayout(scan_widget)
 
         scan_plot = pg.PlotWidget(title='激光扫描')
         scan_plot.setBackground('w')
@@ -92,12 +96,27 @@ class PlotWidget(QWidget):
         scan_plot.setXRange(-10, 10)
         scan_plot.setYRange(-10, 10)
         self.plots['scan'] = scan_plot
-        self.curves['scan'] = scan_plot.plot(pen=None, symbol='o',
-                                             symbolSize=2, symbolBrush='b')
+        self.curves['scan'] = scan_plot.plot(
+            pen=None,
+            symbol='o',
+            symbolSize=2,
+            symbolBrush='b'
+        )
         scan_layout.addWidget(scan_plot)
 
-        scan_container.setLayout(scan_layout)
-        layout.addWidget(scan_container)
+        # 添加激光雷达标签页
+        self.tab_widget.addTab(scan_widget, "激光雷达数据")
+
+        # 添加可拖拽功能按钮
+        button_layout = QHBoxLayout()
+        detach_button = QPushButton("分离当前标签页")
+        detach_button.clicked.connect(self.detach_current_tab)
+        button_layout.addWidget(detach_button)
+        button_layout.addStretch()
+        main_layout.addLayout(button_layout)
+
+        # 存储分离的窗口
+        self.detached_windows = {}
 
     def setup_data_buffers(self):
         """初始化数据缓冲区"""
@@ -172,6 +191,9 @@ class PlotWidget(QWidget):
 
     def update_plots(self):
         """更新所有图表"""
+        if not self.is_recording:
+            return  # 如果没有在记录，就不更新图表
+
         current_time = rospy.Time.now().to_sec()
         self.time_data = np.roll(self.time_data, -1)
         self.time_data[-1] = current_time
@@ -208,6 +230,54 @@ class PlotWidget(QWidget):
             self.curves['scan'].setData(
                 self.scan_data['x'], self.scan_data['y'])
 
+    def set_recording(self, is_recording):
+        """设置记录状态"""
+        self.is_recording = is_recording
+
+    def handle_tab_close(self, index):
+        """处理标签页关闭事件"""
+        tab = self.tab_widget.widget(index)
+        if tab is not None:
+            # 不真正关闭标签页，而是隐藏它
+            self.tab_widget.removeTab(index)
+            tab.hide()
+            # 添加到主菜单的"视图"菜单中
+            self.parent().add_to_view_menu(tab, self.tab_widget.tabText(index))
+
+    def detach_current_tab(self):
+        """将当前标签页分离到新窗口"""
+        current_index = self.tab_widget.currentIndex()
+        if current_index < 0:
+            return
+
+        tab = self.tab_widget.widget(current_index)
+        title = self.tab_widget.tabText(current_index)
+
+        # 创建新窗口
+        new_window = QMainWindow(self)
+        new_window.setAttribute(Qt.WA_DeleteOnClose)
+        new_window.setWindowTitle(title)
+        new_window.setCentralWidget(tab)
+        new_window.resize(600, 400)
+
+        # 存储窗口引用
+        self.detached_windows[title] = new_window
+
+        # 显示新窗口
+        new_window.show()
+
+        # 从标签页中移除但不删除组件
+        self.tab_widget.removeTab(current_index)
+
+    def attach_tab(self, tab, title):
+        """将标签页重新附加到主窗口"""
+        if title in self.detached_windows:
+            window = self.detached_windows[title]
+            window.centralWidget().setParent(None)  # 将组件从窗口中移除
+            self.tab_widget.addTab(tab, title)
+            window.close()
+            del self.detached_windows[title]
+
     def get_current_data(self):
         """获取当前数据，用于记录"""
         return {
@@ -229,22 +299,29 @@ class PlotWidget(QWidget):
         # 更新IMU数据
         for axis in ['x', 'y', 'z']:
             # 修复角速度数据更新
-            self.imu_data['angular_velocity'][axis] = np.roll(self.imu_data['angular_velocity'][axis], -1)
-            self.imu_data['angular_velocity'][axis][-1] = data[f'imu_angular_{axis}']
+            self.imu_data['angular_velocity'][axis] = np.roll(
+                self.imu_data['angular_velocity'][axis], -1)
+            self.imu_data['angular_velocity'][axis][-1] = data[f'imu_angular_{
+                axis}']
 
             # 修复线加速度数据更新
-            self.imu_data['linear_acceleration'][axis] = np.roll(self.imu_data['linear_acceleration'][axis], -1)
-            self.imu_data['linear_acceleration'][axis][-1] = data[f'imu_linear_{axis}']
+            self.imu_data['linear_acceleration'][axis] = np.roll(
+                self.imu_data['linear_acceleration'][axis], -1)
+            self.imu_data['linear_acceleration'][axis][-1] = data[f'imu_linear_{
+                axis}']
 
         # 更新里程计数据
         for axis in ['x', 'y']:
-            self.odom_data['position'][axis] = np.roll(self.odom_data['position'][axis], -1)
+            self.odom_data['position'][axis] = np.roll(
+                self.odom_data['position'][axis], -1)
             self.odom_data['position'][axis][-1] = data[f'odom_pos_{axis}']
 
-        self.odom_data['velocity']['linear'] = np.roll(self.odom_data['velocity']['linear'], -1)
+        self.odom_data['velocity']['linear'] = np.roll(
+            self.odom_data['velocity']['linear'], -1)
         self.odom_data['velocity']['linear'][-1] = data['odom_vel_linear']
 
-        self.odom_data['velocity']['angular'] = np.roll(self.odom_data['velocity']['angular'], -1)
+        self.odom_data['velocity']['angular'] = np.roll(
+            self.odom_data['velocity']['angular'], -1)
         self.odom_data['velocity']['angular'][-1] = data['odom_vel_angular']
 
         # 更新图表

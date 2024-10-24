@@ -9,7 +9,9 @@ from scipy.stats import pearsonr
 
 class AnalysisWidget(QWidget):
     def __init__(self, data_dir=None, parent=None):
-        super().__init__(parent)
+        super().__init__(parent, Qt.Window)
+        self.setAttribute(Qt.WA_DeleteOnClose)  # 关闭时删除窗口
+
         self.setWindowTitle("数据分析")
         self.setMinimumSize(800, 600)
         self.data_dir = data_dir

@@ -161,10 +161,12 @@ class MainWindow(QMainWindow):
             self.filename = os.path.join(self.data_dir, f"amr_data_{timestamp}.csv")
             self.record_button.setText("停止记录")
             self.recording = True
+            self.plot_widget.set_recording(True)  # 设置图表记录状态
         else:
             self.save_recorded_data()
             self.record_button.setText("开始记录")
             self.recording = False
+            self.plot_widget.set_recording(False)  # 设置图表记录状态
             self.data_buffer = []
 
     def save_recorded_data(self):
