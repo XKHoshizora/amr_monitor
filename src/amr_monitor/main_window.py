@@ -186,15 +186,33 @@ class MainWindow(QMainWindow):
                 )
 
     def show_playback(self):
+        """显示数据回放窗口"""
         if not hasattr(self, 'playback_widget'):
-            self.playback_widget = PlaybackWidget(data_dir=self.data_dir)
-            self.playback_widget.data_updated.connect(
-                self.plot_widget.update_from_playback)
+            try:
+                self.playback_widget = PlaybackWidget(
+                    data_dir=self.data_dir,
+                    parent=self
+                )
+                self.playback_widget.data_updated.connect(
+                    self.plot_widget.update_from_playback)
+            except Exception as e:
+                rospy.logerr(f"创建回放窗口失败: {str(e)}")
+                QMessageBox.critical(self, "错误", f"创建回放窗口失败: {str(e)}")
+                return
         self.playback_widget.show()
 
     def show_analysis(self):
+        """显示数据分析窗口"""
         if not hasattr(self, 'analysis_widget'):
-            self.analysis_widget = AnalysisWidget(data_dir=self.data_dir)
+            try:
+                self.analysis_widget = AnalysisWidget(
+                    data_dir=self.data_dir,
+                    parent=self
+                )
+            except Exception as e:
+                rospy.logerr(f"创建分析窗口失败: {str(e)}")
+                QMessageBox.critical(self, "错误", f"创建分析窗口失败: {str(e)}")
+                return
         self.analysis_widget.show()
 
     def closeEvent(self, event):

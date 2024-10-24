@@ -8,12 +8,24 @@ from scipy.stats import pearsonr
 
 
 class AnalysisWidget(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, data_dir=None, parent=None):
         super().__init__(parent)
+        self.data_dir = data_dir
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
+
+        # 文件选择组
+        file_group = QGroupBox("数据文件")
+        file_layout = QHBoxLayout()
+        self.file_path = QLineEdit()
+        browse_btn = QPushButton("浏览")
+        browse_btn.clicked.connect(self.browse_file)
+        file_layout.addWidget(self.file_path)
+        file_layout.addWidget(browse_btn)
+        file_group.setLayout(file_layout)
+        layout.addWidget(file_group)
 
         # 数据选择
         data_group = QGroupBox("数据选择")
@@ -67,6 +79,19 @@ class AnalysisWidget(QWidget):
         results_layout.addWidget(self.plot_widget)
         results_group.setLayout(results_layout)
         layout.addWidget(results_group)
+
+    def browse_file(self):
+        """浏览数据文件"""
+        start_dir = self.data_dir if self.data_dir else ""
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "选择数据文件",
+            start_dir,
+            "CSV Files (*.csv)"
+        )
+        if filename:
+            self.file_path.setText(filename)
+            self.load_data(filename)
 
     def perform_analysis(self):
         """执行数据分析"""

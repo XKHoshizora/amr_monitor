@@ -10,8 +10,9 @@ class PlaybackWidget(QWidget):
     # 定义信号
     data_updated = pyqtSignal(object)
 
-    def __init__(self, parent=None):
+    def __init__(self, data_dir=None, parent=None):
         super().__init__(parent)
+        self.data_dir = data_dir
         self.setup_ui()
         self.data = None
         self.current_index = 0
@@ -55,8 +56,13 @@ class PlaybackWidget(QWidget):
 
     def browse_file(self):
         """选择回放文件"""
+        start_dir = self.data_dir if self.data_dir else ""
         filename, _ = QFileDialog.getOpenFileName(
-            self, "选择数据文件", "", "CSV Files (*.csv)")
+            self,
+            "选择数据文件",
+            start_dir,
+            "CSV Files (*.csv)"
+        )
         if filename:
             self.file_path.setText(filename)
             self.load_data(filename)
