@@ -244,11 +244,13 @@ class PlotWidget(QWidget):
         """处理标签页关闭事件"""
         tab = self.tab_widget.widget(index)
         if tab is not None:
-            # 不真正关闭标签页，而是隐藏它
+            title = self.tab_widget.tabText(index)
             self.tab_widget.removeTab(index)
-            tab.hide()
-            # 添加到主菜单的"视图"菜单中
-            self.parent().add_to_view_menu(tab, self.tab_widget.tabText(index))
+            tab.hide()  # 隐藏而不是删除
+            # 添加到主窗口的视图菜单中
+            main_window = self.parent()
+            if main_window and hasattr(main_window, 'add_to_view_menu'):
+                main_window.add_to_view_menu(tab, title)
 
     def detach_current_tab(self):
         """将当前标签页分离到新窗口"""
@@ -261,13 +263,23 @@ class PlotWidget(QWidget):
         title = self.tab_widget.tabText(current_index)
 
         # 创建新窗口
-        new_window = QWidget()  # 改用 QWidget 而不是 QMainWindow
-        new_window.setAttribute(Qt.WA_DeleteOnClose, False)  # 不自动删除
+        new_window = QWidget()
+        new_window.setAttribute(Qt.WA_DeleteOnClose, False)
         new_window.setWindowTitle(title)
+        new_window.resize(600, 400)  # 设置合适的大小
 
         # 创建布局
         layout = QVBoxLayout(new_window)
-        layout.addWidget(tab)
+        layout.setContentsMargins(10, 10, 10, 10)  # 设置边距
+
+        # 直接将tab的内容复制到新窗口
+        old_layout = tab.layout()
+        if old_layout:
+            # 复制所有小部件到新窗口
+            while old_layout.count():
+                item = old_layout.takeAt(0)
+                if item.widget():
+                    layout.addWidget(item.widget())
 
         # 添加重新附加按钮
         attach_btn = QPushButton("重新附加到主窗口")
@@ -277,17 +289,35 @@ class PlotWidget(QWidget):
         # 存储窗口引用
         self.detached_windows[title] = new_window
 
-        # 从标签页中移除但不删除组件
+        # 从标签页中移除
         self.tab_widget.removeTab(current_index)
 
         # 显示新窗口
         new_window.show()
+        new_window.raise_()
 
     def attach_tab(self, tab, title, window):
         """将标签页重新附加到主窗口"""
         if title in self.detached_windows:
-            # 从布局中移除组件
-            tab.setParent(None)
+            # 获取窗口中的所有小部件（除了最后的按钮）
+            window_layout = window.layout()
+            widgets = []
+            for i in range(window_layout.count() - 1):  # -1 排除按钮
+                widget = window_layout.itemAt(i).widget()
+                if widget:
+                    widgets.append(widget)
+
+            # 清理tab的布局
+            if tab.layout():
+                QWidget().setLayout(tab.layout())  # 清理旧布局
+
+            # 创建新布局
+            new_layout = QVBoxLayout(tab)
+
+            # 将小部件添加回tab
+            for widget in widgets:
+                widget.setParent(None)  # 从旧窗口移除
+                new_layout.addWidget(widget)
 
             # 重新添加到标签页
             self.tab_widget.addTab(tab, title)

@@ -11,11 +11,10 @@ class PlaybackWidget(QWidget):
     data_updated = pyqtSignal(object)
 
     def __init__(self, data_dir=None, parent=None):
-        super().__init__(parent, Qt.Window)
-        self.setAttribute(Qt.WA_DeleteOnClose)  # 关闭时删除窗口
-
+        super().__init__(parent, Qt.Window)  # 使用Qt.Window标志
+        self.setAttribute(Qt.WA_DeleteOnClose, False)  # 不自动删除
         self.setWindowTitle("数据回放")
-        self.setMinimumSize(600, 400)  # 添加最小尺寸
+        self.setMinimumSize(600, 400)
         self.data_dir = data_dir
         self.setup_ui()
         self.data = None

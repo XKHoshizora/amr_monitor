@@ -112,7 +112,7 @@ class MainWindow(QMainWindow):
 
     def setup_menu(self):
         self.menubar = self.menuBar()
-        self.menubar.setNativeMenuBar(False)  # 确保菜单栏显示在窗口内
+        self.menubar.setNativeMenuBar(False)
 
         # 文件菜单
         self.file_menu = QMenu('文件(&F)', self)
@@ -132,6 +132,10 @@ class MainWindow(QMainWindow):
         self.view_menu = QMenu('视图(&V)', self)
         self.menubar.addMenu(self.view_menu)
 
+        # 添加数据视图子菜单
+        self.data_view_menu = QMenu('数据视图(&D)', self)
+        self.view_menu.addMenu(self.data_view_menu)
+
         self.theme_menu = self.view_menu.addMenu('主题(&T)')
         self.dark_action = QAction('暗色主题(&D)', self)
         self.light_action = QAction('亮色主题(&L)', self)
@@ -150,6 +154,39 @@ class MainWindow(QMainWindow):
         self.analysis_action.triggered.connect(self.show_analysis)
         self.analysis_action.setShortcut('Ctrl+A')
         self.tools_menu.addAction(self.analysis_action)
+
+        # 存储已关闭的标签页
+        self.closed_tabs = {}
+
+    def add_to_view_menu(self, tab, title):
+        """添加标签页到视图菜单"""
+        # 存储标签页
+        self.closed_tabs[title] = tab
+
+        # 创建动作
+        action = QAction(title, self)
+        action.setCheckable(True)
+        action.setChecked(False)
+        action.triggered.connect(lambda checked: self.toggle_tab_view(title, checked))
+
+        # 添加到数据视图菜单
+        self.data_view_menu.addAction(action)
+
+    def toggle_tab_view(self, title, checked):
+        """切换标签页显示状态"""
+        if title in self.closed_tabs:
+            tab = self.closed_tabs[title]
+            if checked:
+                # 将标签页添加回TabWidget
+                index = self.plot_widget.tab_widget.addTab(tab, title)
+                self.plot_widget.tab_widget.setCurrentIndex(index)
+                tab.show()
+            else:
+                # 从TabWidget中移除标签页
+                index = self.plot_widget.tab_widget.indexOf(tab)
+                if index >= 0:
+                    self.plot_widget.tab_widget.removeTab(index)
+                    tab.hide()
 
     def init_managers(self):
         self.theme_manager = ThemeManager()
@@ -225,20 +262,16 @@ class MainWindow(QMainWindow):
     def show_playback(self):
         """显示数据回放窗口"""
         try:
-            # 如果窗口已经被删除，则创建新窗口
-            if not hasattr(self, 'playback_widget') or not self.playback_widget.isVisible():
-                self.playback_widget = PlaybackWidget(
-                    data_dir=self.data_dir,
-                    parent=self
-                )
-                self.playback_widget.data_updated.connect(
-                    self.plot_widget.update_from_playback)
-
-            if self.playback_widget.isHidden():
-                self.playback_widget.show()
-            else:
-                self.playback_widget.raise_()
-                self.playback_widget.activateWindow()
+            # 总是创建新窗口
+            self.playback_widget = PlaybackWidget(
+                data_dir=self.data_dir,
+                parent=None  # 设置为None使其成为独立窗口
+            )
+            self.playback_widget.data_updated.connect(
+                self.plot_widget.update_from_playback)
+            self.playback_widget.show()
+            self.playback_widget.raise_()
+            self.playback_widget.activateWindow()
         except Exception as e:
             rospy.logerr(f"显示回放窗口失败: {str(e)}")
             QMessageBox.critical(self, "错误", f"显示回放窗口失败: {str(e)}")
@@ -246,18 +279,14 @@ class MainWindow(QMainWindow):
     def show_analysis(self):
         """显示数据分析窗口"""
         try:
-            # 如果窗口已经被删除，则创建新窗口
-            if not hasattr(self, 'analysis_widget') or not self.analysis_widget.isVisible():
-                self.analysis_widget = AnalysisWidget(
-                    data_dir=self.data_dir,
-                    parent=self
-                )
-
-            if self.analysis_widget.isHidden():
-                self.analysis_widget.show()
-            else:
-                self.analysis_widget.raise_()
-                self.analysis_widget.activateWindow()
+            # 总是创建新窗口
+            self.analysis_widget = AnalysisWidget(
+                data_dir=self.data_dir,
+                parent=None  # 设置为None使其成为独立窗口
+            )
+            self.analysis_widget.show()
+            self.analysis_widget.raise_()
+            self.analysis_widget.activateWindow()
         except Exception as e:
             rospy.logerr(f"显示分析窗口失败: {str(e)}")
             QMessageBox.critical(self, "错误", f"显示分析窗口失败: {str(e)}")
@@ -277,9 +306,8 @@ class MainWindow(QMainWindow):
             else:
                 event.ignore()
         else:
-            # 保存窗口大小到配置
-            config = self.config_manager.get_config()
-            config['ui']['window']['width'] = self.width()
-            config['ui']['window']['height'] = self.height()
-            self.config_manager.save_config(config)
+            # 关闭所有分离的窗口
+            if hasattr(self.plot_widget, 'detached_windows'):
+                for window in self.plot_widget.detached_windows.values():
+                    window.close()
             event.accept()
