@@ -192,21 +192,31 @@ class MainWindow(QMainWindow):
         """切换标签页显示状态"""
         if hasattr(self.plot_widget, 'tab_widget'):
             tab_widget = self.plot_widget.tab_widget
-            # 查找标签页
-            for i in range(tab_widget.count()):
-                if tab_widget.tabText(i) == title:
-                    if not checked:
-                        # 如果取消选中，保存标签页并隐藏
+
+            if checked:
+                # 如果是选中状态，显示标签页
+                if title in self.closed_tabs:
+                    tab = self.closed_tabs[title]
+                    tab_widget.addTab(tab, title)
+                    del self.closed_tabs[title]
+                # 如果标签页不在关闭列表中，可能需要重新创建
+                elif title in self.plot_widget.original_tab_contents:
+                    tab = self.plot_widget.original_tab_contents[title]
+                    tab_widget.addTab(tab, title)
+            else:
+                # 如果是取消选中状态，隐藏标签页
+                for i in range(tab_widget.count()):
+                    if tab_widget.tabText(i) == title:
                         tab = tab_widget.widget(i)
                         self.closed_tabs[title] = tab
                         tab_widget.removeTab(i)
-                    return
+                        break
 
-            # 如果标签页不在TabWidget中，且被选中，则添加回去
-            if checked and title in self.closed_tabs:
-                tab = self.closed_tabs[title]
-                tab_widget.addTab(tab, title)
-                del self.closed_tabs[title]
+            # 确保菜单项状态与实际显示状态同步
+            if title in self.view_actions:
+                is_visible = any(tab_widget.tabText(i) == title
+                            for i in range(tab_widget.count()))
+                self.view_actions[title].setChecked(is_visible)
 
     def init_managers(self):
         self.theme_manager = ThemeManager()

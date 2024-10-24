@@ -26,6 +26,10 @@ class PlotWidget(QWidget):
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
 
+        # 存储分离的窗口和原始标签页内容（提前初始化）
+        self.detached_windows = {}
+        self.original_tab_contents = {}
+
         # 创建标签页组件
         self.tab_widget = QTabWidget()
         self.tab_widget.setTabsClosable(True)
@@ -33,9 +37,10 @@ class PlotWidget(QWidget):
         self.tab_widget.tabCloseRequested.connect(self.handle_tab_close)
         main_layout.addWidget(self.tab_widget)
 
-        # IMU数据标签页
+        # 创建IMU数据标签页
         imu_widget = QWidget()
         imu_layout = QVBoxLayout(imu_widget)
+        imu_layout.setContentsMargins(5, 5, 5, 5)
 
         # 角速度图表
         angular_plot = pg.PlotWidget(title='角速度')
@@ -61,12 +66,14 @@ class PlotWidget(QWidget):
         self.curves['linear_z'] = linear_plot.plot(pen='b', name='z轴')
         imu_layout.addWidget(linear_plot)
 
-        # 添加IMU标签页
+        # 保存IMU原始内容并添加标签页
+        self.original_tab_contents['IMU数据'] = imu_widget
         self.tab_widget.addTab(imu_widget, "IMU数据")
 
-        # 里程计数据标签页
+        # 创建里程计数据标签页
         odom_widget = QWidget()
         odom_layout = QVBoxLayout(odom_widget)
+        odom_layout.setContentsMargins(5, 5, 5, 5)
 
         velocity_plot = pg.PlotWidget(title='速度')
         velocity_plot.setBackground('w')
@@ -88,12 +95,14 @@ class PlotWidget(QWidget):
         self.curves['pos_y'] = position_plot.plot(pen='g', name='y')
         odom_layout.addWidget(position_plot)
 
-        # 添加里程计标签页
+        # 保存里程计原始内容并添加标签页
+        self.original_tab_contents['里程计数据'] = odom_widget
         self.tab_widget.addTab(odom_widget, "里程计数据")
 
-        # 激光雷达数据标签页
+        # 创建激光雷达数据标签页
         scan_widget = QWidget()
         scan_layout = QVBoxLayout(scan_widget)
+        scan_layout.setContentsMargins(5, 5, 5, 5)
 
         scan_plot = pg.PlotWidget(title='激光扫描')
         scan_plot.setBackground('w')
@@ -110,7 +119,8 @@ class PlotWidget(QWidget):
         )
         scan_layout.addWidget(scan_plot)
 
-        # 添加激光雷达标签页
+        # 保存激光雷达原始内容并添加标签页
+        self.original_tab_contents['激光雷达数据'] = scan_widget
         self.tab_widget.addTab(scan_widget, "激光雷达数据")
 
         # 添加可拖拽功能按钮
@@ -120,17 +130,6 @@ class PlotWidget(QWidget):
         button_layout.addWidget(detach_button)
         button_layout.addStretch()
         main_layout.addLayout(button_layout)
-
-        # 存储分离的窗口
-        self.detached_windows = {}
-
-        # 存储原始标签页内容
-        self.original_tab_contents = {}
-
-        # 在创建标签页时保存原始内容
-        self.original_tab_contents['IMU数据'] = imu_widget
-        self.original_tab_contents['里程计数据'] = odom_widget
-        self.original_tab_contents['激光雷达数据'] = scan_widget
 
     def setup_data_buffers(self):
         """初始化数据缓冲区"""
@@ -256,8 +255,9 @@ class PlotWidget(QWidget):
             # 更新菜单项的状态
             main_window = self.parent()
             if main_window and hasattr(main_window, 'view_actions'):
-                if title in main_window.view_actions:
-                    main_window.view_actions[title].setChecked(False)
+                action = main_window.view_actions.get(title)
+                if action:
+                    action.setChecked(False)
             # 移除标签页
             self.tab_widget.removeTab(index)
 
@@ -271,68 +271,94 @@ class PlotWidget(QWidget):
         tab = self.tab_widget.widget(current_index)
         title = self.tab_widget.tabText(current_index)
 
-        # 创建新窗口
-        new_window = QWidget()
-        new_window.setAttribute(Qt.WA_DeleteOnClose, False)
-        new_window.setWindowTitle(title)
-        new_window.resize(600, 400)
+        try:
+            # 创建新窗口
+            new_window = QWidget()
+            new_window.setAttribute(Qt.WA_DeleteOnClose, False)
+            new_window.setWindowTitle(title)
+            new_window.resize(600, 400)
 
-        # 创建布局
-        layout = QVBoxLayout(new_window)
-        layout.setContentsMargins(10, 10, 10, 10)
+            # 创建布局
+            layout = QVBoxLayout(new_window)
+            layout.setContentsMargins(10, 10, 10, 10)
 
-        # 创建新的组件副本
-        if title in self.original_tab_contents:
-            original_widget = self.original_tab_contents[title]
-            new_content = QWidget()
-            new_layout = QVBoxLayout(new_content)
+            # 创建新的内容容器
+            content_widget = QWidget()
+            content_layout = QVBoxLayout(content_widget)
 
-            # 复制原始组件的所有子组件
-            original_layout = original_widget.layout()
-            if original_layout:
-                for i in range(original_layout.count()):
-                    widget = original_layout.itemAt(i).widget()
-                    if widget:
-                        new_layout.addWidget(widget)
+            # 获取原始布局中的所有组件
+            if title in self.original_tab_contents:
+                original_widget = self.original_tab_contents[title]
+                original_layout = original_widget.layout()
 
-            layout.addWidget(new_content)
+                if original_layout:
+                    # 安全地复制所有组件
+                    for i in range(original_layout.count()):
+                        item = original_layout.itemAt(i)
+                        if item:
+                            widget = item.widget()
+                            if widget:
+                                # 使用QStackedWidget来保持组件状态
+                                stack = QStackedWidget()
+                                stack.addWidget(widget)
+                                content_layout.addWidget(stack)
 
-        # 添加重新附加按钮
-        attach_btn = QPushButton("重新附加到主窗口")
-        attach_btn.clicked.connect(lambda: self.attach_tab(title, new_window))
-        layout.addWidget(attach_btn)
+            layout.addWidget(content_widget)
 
-        # 存储窗口引用
-        self.detached_windows[title] = new_window
+            # 添加重新附加按钮
+            attach_btn = QPushButton("重新附加到主窗口")
+            attach_btn.clicked.connect(lambda: self.attach_tab(title, new_window))
+            layout.addWidget(attach_btn)
 
-        # 从标签页中移除
-        self.tab_widget.removeTab(current_index)
+            # 存储窗口引用和组件信息
+            self.detached_windows[title] = {
+                'window': new_window,
+                'content': content_widget,
+                'stacks': []  # 存储QStackedWidget引用
+            }
 
-        # 显示新窗口
-        new_window.show()
-        new_window.raise_()
+            # 从标签页中移除
+            self.tab_widget.removeTab(current_index)
+
+            # 显示新窗口
+            new_window.show()
+            new_window.raise_()
+
+        except Exception as e:
+            rospy.logerr(f"分离标签页失败: {str(e)}")
+            QMessageBox.critical(None, "错误", f"分离标签页失败: {str(e)}")
 
     def attach_tab(self, title, window):
         """将标签页重新附加到主窗口"""
-        if title in self.detached_windows and title in self.original_tab_contents:
-            # 重新创建标签页
-            original_widget = self.original_tab_contents[title]
-            layout = original_widget.layout()
+        try:
+            if title in self.detached_windows and title in self.original_tab_contents:
+                window_data = self.detached_windows[title]
+                original_widget = self.original_tab_contents[title]
+                original_layout = original_widget.layout()
 
-            # 将组件移回原始布局
-            window_content = window.findChild(QWidget)
-            if window_content and window_content.layout():
-                while window_content.layout().count() > 0:
-                    item = window_content.layout().takeAt(0)
-                    if item.widget():
-                        layout.addWidget(item.widget())
+                if original_layout and window_data['content'].layout():
+                    content_layout = window_data['content'].layout()
 
-            # 重新添加到标签页
-            self.tab_widget.addTab(original_widget, title)
+                    # 将组件移回原始布局
+                    while content_layout.count() > 0:
+                        stack = content_layout.takeAt(0)
+                        if stack and stack.widget():
+                            widget = stack.widget().widget(0)
+                            if widget:
+                                widget.setParent(None)
+                                original_layout.addWidget(widget)
 
-            # 关闭独立窗口
-            window.close()
-            del self.detached_windows[title]
+                # 重新添加到标签页
+                index = self.tab_widget.addTab(original_widget, title)
+                self.tab_widget.setCurrentIndex(index)
+
+                # 关闭独立窗口
+                window.close()
+                del self.detached_windows[title]
+
+        except Exception as e:
+            rospy.logerr(f"重新附加标签页失败: {str(e)}")
+            QMessageBox.critical(None, "错误", f"重新附加标签页失败: {str(e)}")
 
     def get_current_data(self):
         """获取当前数据，用于记录"""
