@@ -1,0 +1,14 @@
+<launch>
+    <!-- 启动测试所需的节点 -->
+    <node pkg="rostopic" type="rostopic" name="fake_imu" args="pub /imu/data sensor_msgs/Imu
+          '{header: {stamp: now},
+            angular_velocity: {x: 1.0, y: 0.0, z: 0.0},
+            linear_acceleration: {x: 0.0, y: 0.0, z: 9.81}}' -r 10" />
+
+    <node pkg="rostopic" type="rostopic" name="fake_odom" args="pub /odom nav_msgs/Odometry
+          '{header: {stamp: now},
+            twist: {twist: {linear: {x: 0.5}, angular: {z: 0.1}}}}' -r 10" />
+
+    <!-- 运行测试 -->
+    <test test-name="test_amr_monitor" pkg="amr_monitor" type="test_amr_monitor.py" time-limit="60.0" />
+</launch>

@@ -1,0 +1,32 @@
+<launch>
+    <!-- 基础参数配置 -->
+    <arg name="update_rate" default="30" doc="UI更新频率(Hz)" />
+    <arg name="buffer_size" default="1000" doc="数据缓冲区大小" />
+    <arg name="use_threading" default="true" doc="是否使用多线程" />
+
+    <!-- 配置文件路径 -->
+    <arg name="config_dir" default="$(env HOME)/.amr_monitor" />
+
+    <!-- 话题配置 -->
+    <arg name="imu_topic" default="/imu/data" />
+    <arg name="odom_topic" default="/odom" />
+    <arg name="scan_topic" default="/scan" />
+    <arg name="cmd_vel_topic" default="/cmd_vel" />
+
+    <!-- 启动监控节点 -->
+    <node name="amr_monitor" pkg="amr_monitor" type="monitor_node.py" output="screen">
+        <!-- 性能参数 -->
+        <param name="update_rate" value="$(arg update_rate)" />
+        <param name="buffer_size" value="$(arg buffer_size)" />
+        <param name="use_threading" value="$(arg use_threading)" />
+
+        <!-- 话题重映射 -->
+        <remap from="/imu/data" to="$(arg imu_topic)" />
+        <remap from="/odom" to="$(arg odom_topic)" />
+        <remap from="/scan" to="$(arg scan_topic)" />
+        <remap from="/cmd_vel" to="$(arg cmd_vel_topic)" />
+
+        <!-- 配置目录 -->
+        <param name="config_dir" value="$(arg config_dir)" />
+    </node>
+</launch>

@@ -1,0 +1,21 @@
+# 低资源消耗配置
+ui:
+  theme: light
+  refresh_rate: 10
+  use_opengl: false
+
+buffer:
+  size: 500
+  use_threading: false
+  batch_update: false
+
+optimization:
+  enable_downsampling: true
+  clip_to_view: true
+  antialiasing: false
+  use_cached_data: false
+
+processing:
+  parallel_processing: false
+  batch_size: 50
+  prefetch_size: 1
