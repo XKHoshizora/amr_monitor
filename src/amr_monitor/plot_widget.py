@@ -13,6 +13,12 @@ class PlotWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.is_recording = False  # 添加记录状态标志
+
+        # 初始化plots和curves字典
+        self.plots = {}
+        self.curves = {}
+
+        # 然后再调用其他设置
         self.setup_ui()
         self.setup_data_buffers()
         self.setup_subscribers()
@@ -22,8 +28,8 @@ class PlotWidget(QWidget):
 
         # 创建标签页组件
         self.tab_widget = QTabWidget()
-        self.tab_widget.setTabsClosable(True)  # 允许关闭标签页
-        self.tab_widget.setMovable(True)  # 允许移动标签页
+        self.tab_widget.setTabsClosable(True)
+        self.tab_widget.setMovable(True)
         self.tab_widget.tabCloseRequested.connect(self.handle_tab_close)
         main_layout.addWidget(self.tab_widget)
 
