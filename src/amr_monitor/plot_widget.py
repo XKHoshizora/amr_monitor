@@ -298,31 +298,37 @@ class PlotWidget(QWidget):
         """从回放数据更新图表"""
         # 更新IMU数据
         for axis in ['x', 'y', 'z']:
-            # 修复角速度数据更新
-            self.imu_data['angular_velocity'][axis] = np.roll(
-                self.imu_data['angular_velocity'][axis], -1)
-            self.imu_data['angular_velocity'][axis][-1] = data[f'imu_angular_{
-                axis}']
+            # 角速度数据
+            angular_key = f'imu_angular_{axis}'
+            if angular_key in data:
+                self.imu_data['angular_velocity'][axis] = np.roll(
+                    self.imu_data['angular_velocity'][axis], -1)
+                self.imu_data['angular_velocity'][axis][-1] = data[angular_key]
 
-            # 修复线加速度数据更新
-            self.imu_data['linear_acceleration'][axis] = np.roll(
-                self.imu_data['linear_acceleration'][axis], -1)
-            self.imu_data['linear_acceleration'][axis][-1] = data[f'imu_linear_{
-                axis}']
+            # 线加速度数据
+            linear_key = f'imu_linear_{axis}'
+            if linear_key in data:
+                self.imu_data['linear_acceleration'][axis] = np.roll(
+                    self.imu_data['linear_acceleration'][axis], -1)
+                self.imu_data['linear_acceleration'][axis][-1] = data[linear_key]
 
         # 更新里程计数据
         for axis in ['x', 'y']:
-            self.odom_data['position'][axis] = np.roll(
-                self.odom_data['position'][axis], -1)
-            self.odom_data['position'][axis][-1] = data[f'odom_pos_{axis}']
+            pos_key = f'odom_pos_{axis}'
+            if pos_key in data:
+                self.odom_data['position'][axis] = np.roll(
+                    self.odom_data['position'][axis], -1)
+                self.odom_data['position'][axis][-1] = data[pos_key]
 
-        self.odom_data['velocity']['linear'] = np.roll(
-            self.odom_data['velocity']['linear'], -1)
-        self.odom_data['velocity']['linear'][-1] = data['odom_vel_linear']
+        if 'odom_vel_linear' in data:
+            self.odom_data['velocity']['linear'] = np.roll(
+                self.odom_data['velocity']['linear'], -1)
+            self.odom_data['velocity']['linear'][-1] = data['odom_vel_linear']
 
-        self.odom_data['velocity']['angular'] = np.roll(
-            self.odom_data['velocity']['angular'], -1)
-        self.odom_data['velocity']['angular'][-1] = data['odom_vel_angular']
+        if 'odom_vel_angular' in data:
+            self.odom_data['velocity']['angular'] = np.roll(
+                self.odom_data['velocity']['angular'], -1)
+            self.odom_data['velocity']['angular'][-1] = data['odom_vel_angular']
 
         # 更新图表
         self.update_plots()
