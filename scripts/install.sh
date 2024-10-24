@@ -7,22 +7,26 @@ if [ ! -f "src/amr_monitor/package.xml" ]; then
 fi
 
 # 检查依赖
+chmod +x src/amr_monitor/scripts/check_dependencies.sh
 ./src/amr_monitor/scripts/check_dependencies.sh
 if [ $? -ne 0 ]; then
     echo "依赖检查失败，请先安装所需依赖"
     exit 1
 fi
 
+# 确保config目录存在
+mkdir -p src/amr_monitor/config
+mkdir -p src/amr_monitor/data
+
+# 复制默认配置到配置文件
+cp src/amr_monitor/config/default_config.yaml src/amr_monitor/config/config.yaml
+
 # 编译功能包
 catkin_make
 
-# 创建配置目录
-mkdir -p ~/.amr_monitor
-
-# 复制默认配置
-cp src/amr_monitor/config/default_config.yaml ~/.amr_monitor/
+source devel/setup.bash
 
 # 设置执行权限
 chmod +x src/amr_monitor/scripts/monitor_node.py
 
-echo "安装完成，请运行 source devel/setup.bash"
+echo "安装完成！"

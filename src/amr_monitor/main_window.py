@@ -1,6 +1,7 @@
 import os
 import sys
 import rospy
+import rospkg
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from datetime import datetime
@@ -16,11 +17,27 @@ from .analysis_widget import AnalysisWidget
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        # 初始化包路径
+        rospack = rospkg.RosPack()
+        self.package_path = rospack.get_path('amr_monitor')
+        self.data_dir = os.path.join(self.package_path, 'data')
+
+        # 确保数据目录存在
+        os.makedirs(self.data_dir, exist_ok=True)
+
+        # 初始化管理器
+        self.init_managers()
+
+        # 应用配置
+        config = self.config_manager.get_config()
         self.setWindowTitle('AMR Monitor')
-        self.resize(1200, 800)
+        self.resize(
+            config['ui']['window']['width'],
+            config['ui']['window']['height']
+        )
+
         self.setup_ui()
         self.setup_menu()
-        self.init_managers()
 
     def setup_ui(self):
         # 创建中心部件和布局
@@ -106,7 +123,7 @@ class MainWindow(QMainWindow):
     def toggle_recording(self, checked):
         if checked:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.filename = f"amr_data_{timestamp}.csv"
+            self.filename = os.path.join(self.data_dir, f"amr_data_{timestamp}.csv")
             self.record_button.setText("停止记录")
             self.recording = True
         else:
@@ -117,9 +134,20 @@ class MainWindow(QMainWindow):
 
     def save_recorded_data(self):
         if self.data_buffer:
-            df = pd.DataFrame(self.data_buffer)
-            df.to_csv(self.filename, index=False)
-            QMessageBox.information(self, "保存成功", f"数据已保存至: {self.filename}")
+            try:
+                df = pd.DataFrame(self.data_buffer)
+                df.to_csv(self.filename, index=False)
+                QMessageBox.information(
+                    self,
+                    "保存成功",
+                    f"数据已保存至: {os.path.relpath(self.filename, self.package_path)}"
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "保存失败",
+                    f"保存数据失败: {str(e)}"
+                )
 
     def update_data(self):
         # 更新图表显示
@@ -136,22 +164,37 @@ class MainWindow(QMainWindow):
             return
 
         filename, _ = QFileDialog.getSaveFileName(
-            self, "导出数据", "", "CSV Files (*.csv)")
+            self,
+            "导出数据",
+            os.path.join(self.data_dir, "exported_data.csv"),
+            "CSV Files (*.csv)"
+        )
         if filename:
-            df = pd.DataFrame(self.data_buffer)
-            df.to_csv(filename, index=False)
-            QMessageBox.information(self, "导出成功", f"数据已导出至: {filename}")
+            try:
+                df = pd.DataFrame(self.data_buffer)
+                df.to_csv(filename, index=False)
+                QMessageBox.information(
+                    self,
+                    "导出成功",
+                    f"数据已导出至: {os.path.relpath(filename, self.package_path)}"
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "导出失败",
+                    f"导出数据失败: {str(e)}"
+                )
 
     def show_playback(self):
         if not hasattr(self, 'playback_widget'):
-            self.playback_widget = PlaybackWidget()
+            self.playback_widget = PlaybackWidget(data_dir=self.data_dir)
             self.playback_widget.data_updated.connect(
                 self.plot_widget.update_from_playback)
         self.playback_widget.show()
 
     def show_analysis(self):
         if not hasattr(self, 'analysis_widget'):
-            self.analysis_widget = AnalysisWidget()
+            self.analysis_widget = AnalysisWidget(data_dir=self.data_dir)
         self.analysis_widget.show()
 
     def closeEvent(self, event):
@@ -169,4 +212,9 @@ class MainWindow(QMainWindow):
             else:
                 event.ignore()
         else:
+            # 保存窗口大小到配置
+            config = self.config_manager.get_config()
+            config['ui']['window']['width'] = self.width()
+            config['ui']['window']['height'] = self.height()
+            self.config_manager.save_config(config)
             event.accept()
