@@ -124,6 +124,14 @@ class PlotWidget(QWidget):
         # 存储分离的窗口
         self.detached_windows = {}
 
+        # 存储原始标签页内容
+        self.original_tab_contents = {}
+
+        # 在创建标签页时保存原始内容
+        self.original_tab_contents['IMU数据'] = imu_widget
+        self.original_tab_contents['里程计数据'] = odom_widget
+        self.original_tab_contents['激光雷达数据'] = scan_widget
+
     def setup_data_buffers(self):
         """初始化数据缓冲区"""
         self.buffer_size = 500
@@ -245,12 +253,13 @@ class PlotWidget(QWidget):
         tab = self.tab_widget.widget(index)
         if tab is not None:
             title = self.tab_widget.tabText(index)
-            self.tab_widget.removeTab(index)
-            tab.hide()  # 隐藏而不是删除
-            # 添加到主窗口的视图菜单中
+            # 更新菜单项的状态
             main_window = self.parent()
-            if main_window and hasattr(main_window, 'add_to_view_menu'):
-                main_window.add_to_view_menu(tab, title)
+            if main_window and hasattr(main_window, 'view_actions'):
+                if title in main_window.view_actions:
+                    main_window.view_actions[title].setChecked(False)
+            # 移除标签页
+            self.tab_widget.removeTab(index)
 
     def detach_current_tab(self):
         """将当前标签页分离到新窗口"""
@@ -266,24 +275,31 @@ class PlotWidget(QWidget):
         new_window = QWidget()
         new_window.setAttribute(Qt.WA_DeleteOnClose, False)
         new_window.setWindowTitle(title)
-        new_window.resize(600, 400)  # 设置合适的大小
+        new_window.resize(600, 400)
 
         # 创建布局
         layout = QVBoxLayout(new_window)
-        layout.setContentsMargins(10, 10, 10, 10)  # 设置边距
+        layout.setContentsMargins(10, 10, 10, 10)
 
-        # 直接将tab的内容复制到新窗口
-        old_layout = tab.layout()
-        if old_layout:
-            # 复制所有小部件到新窗口
-            while old_layout.count():
-                item = old_layout.takeAt(0)
-                if item.widget():
-                    layout.addWidget(item.widget())
+        # 创建新的组件副本
+        if title in self.original_tab_contents:
+            original_widget = self.original_tab_contents[title]
+            new_content = QWidget()
+            new_layout = QVBoxLayout(new_content)
+
+            # 复制原始组件的所有子组件
+            original_layout = original_widget.layout()
+            if original_layout:
+                for i in range(original_layout.count()):
+                    widget = original_layout.itemAt(i).widget()
+                    if widget:
+                        new_layout.addWidget(widget)
+
+            layout.addWidget(new_content)
 
         # 添加重新附加按钮
         attach_btn = QPushButton("重新附加到主窗口")
-        attach_btn.clicked.connect(lambda: self.attach_tab(tab, title, new_window))
+        attach_btn.clicked.connect(lambda: self.attach_tab(title, new_window))
         layout.addWidget(attach_btn)
 
         # 存储窗口引用
@@ -296,31 +312,23 @@ class PlotWidget(QWidget):
         new_window.show()
         new_window.raise_()
 
-    def attach_tab(self, tab, title, window):
+    def attach_tab(self, title, window):
         """将标签页重新附加到主窗口"""
-        if title in self.detached_windows:
-            # 获取窗口中的所有小部件（除了最后的按钮）
-            window_layout = window.layout()
-            widgets = []
-            for i in range(window_layout.count() - 1):  # -1 排除按钮
-                widget = window_layout.itemAt(i).widget()
-                if widget:
-                    widgets.append(widget)
+        if title in self.detached_windows and title in self.original_tab_contents:
+            # 重新创建标签页
+            original_widget = self.original_tab_contents[title]
+            layout = original_widget.layout()
 
-            # 清理tab的布局
-            if tab.layout():
-                QWidget().setLayout(tab.layout())  # 清理旧布局
-
-            # 创建新布局
-            new_layout = QVBoxLayout(tab)
-
-            # 将小部件添加回tab
-            for widget in widgets:
-                widget.setParent(None)  # 从旧窗口移除
-                new_layout.addWidget(widget)
+            # 将组件移回原始布局
+            window_content = window.findChild(QWidget)
+            if window_content and window_content.layout():
+                while window_content.layout().count() > 0:
+                    item = window_content.layout().takeAt(0)
+                    if item.widget():
+                        layout.addWidget(item.widget())
 
             # 重新添加到标签页
-            self.tab_widget.addTab(tab, title)
+            self.tab_widget.addTab(original_widget, title)
 
             # 关闭独立窗口
             window.close()

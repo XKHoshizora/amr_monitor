@@ -132,10 +132,26 @@ class MainWindow(QMainWindow):
         self.view_menu = QMenu('视图(&V)', self)
         self.menubar.addMenu(self.view_menu)
 
-        # 添加数据视图子菜单
+        # 创建数据视图子菜单并添加基本选项
         self.data_view_menu = QMenu('数据视图(&D)', self)
         self.view_menu.addMenu(self.data_view_menu)
 
+        # 添加默认的数据视图选项
+        self.view_actions = {}
+        default_views = {
+            'IMU数据': True,
+            '里程计数据': True,
+            '激光雷达数据': True
+        }
+        for title, initial_state in default_views.items():
+            action = QAction(title, self)
+            action.setCheckable(True)
+            action.setChecked(initial_state)
+            action.triggered.connect(lambda checked, t=title: self.toggle_tab_view(t, checked))
+            self.data_view_menu.addAction(action)
+            self.view_actions[title] = action
+
+        # 主题菜单
         self.theme_menu = self.view_menu.addMenu('主题(&T)')
         self.dark_action = QAction('暗色主题(&D)', self)
         self.light_action = QAction('亮色主题(&L)', self)
@@ -174,19 +190,23 @@ class MainWindow(QMainWindow):
 
     def toggle_tab_view(self, title, checked):
         """切换标签页显示状态"""
-        if title in self.closed_tabs:
-            tab = self.closed_tabs[title]
-            if checked:
-                # 将标签页添加回TabWidget
-                index = self.plot_widget.tab_widget.addTab(tab, title)
-                self.plot_widget.tab_widget.setCurrentIndex(index)
-                tab.show()
-            else:
-                # 从TabWidget中移除标签页
-                index = self.plot_widget.tab_widget.indexOf(tab)
-                if index >= 0:
-                    self.plot_widget.tab_widget.removeTab(index)
-                    tab.hide()
+        if hasattr(self.plot_widget, 'tab_widget'):
+            tab_widget = self.plot_widget.tab_widget
+            # 查找标签页
+            for i in range(tab_widget.count()):
+                if tab_widget.tabText(i) == title:
+                    if not checked:
+                        # 如果取消选中，保存标签页并隐藏
+                        tab = tab_widget.widget(i)
+                        self.closed_tabs[title] = tab
+                        tab_widget.removeTab(i)
+                    return
+
+            # 如果标签页不在TabWidget中，且被选中，则添加回去
+            if checked and title in self.closed_tabs:
+                tab = self.closed_tabs[title]
+                tab_widget.addTab(tab, title)
+                del self.closed_tabs[title]
 
     def init_managers(self):
         self.theme_manager = ThemeManager()
