@@ -31,35 +31,45 @@ class MainWindow(QMainWindow):
         # 应用配置
         config = self.config_manager.get_config()
         self.setWindowTitle('AMR Monitor')
+
+        # 设置窗口属性
+        self.setMinimumSize(800, 600)  # 设置最小尺寸
         self.resize(
             config['ui']['window']['width'],
             config['ui']['window']['height']
         )
 
+        # 设置窗口状态
+        self.previous_size = None  # 用于存储最大化前的尺寸
         self.setup_ui()
         self.setup_menu()
 
     def setup_ui(self):
         # 创建中心部件和布局
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        layout = QHBoxLayout(central_widget)
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.main_layout = QHBoxLayout(self.central_widget)
+        self.main_layout.setContentsMargins(5, 5, 5, 5)  # 设置边距
+        self.main_layout.setSpacing(5)  # 设置组件间距
 
         # 创建左右分割窗口
-        splitter = QSplitter(Qt.Horizontal)
-        layout.addWidget(splitter)
+        self.splitter = QSplitter(Qt.Horizontal)
+        self.splitter.setHandleWidth(5)  # 设置分割条宽度
+        self.main_layout.addWidget(self.splitter)
 
         # 左侧放置传感器数据显示
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
 
         # 传感器数据图表
         self.plot_widget = PlotWidget()
-        left_layout.addWidget(self.plot_widget)
+        left_layout.addWidget(self.plot_widget, stretch=1)  # 添加拉伸因子
 
         # 添加数据记录控制
         record_group = QGroupBox("数据记录")
         record_layout = QHBoxLayout()
+        record_layout.setContentsMargins(5, 5, 5, 5)
         self.record_button = QPushButton("开始记录")
         self.record_button.setCheckable(True)
         self.record_button.toggled.connect(self.toggle_recording)
@@ -67,11 +77,15 @@ class MainWindow(QMainWindow):
         record_group.setLayout(record_layout)
         left_layout.addWidget(record_group)
 
-        splitter.addWidget(left_widget)
+        self.splitter.addWidget(left_widget)
 
         # 右侧放置参数显示和控制
         self.parameter_widget = ParameterWidget()
-        splitter.addWidget(self.parameter_widget)
+        self.splitter.addWidget(self.parameter_widget)
+
+        # 设置分割比例
+        self.splitter.setStretchFactor(0, 2)  # 左侧占比大
+        self.splitter.setStretchFactor(1, 1)  # 右侧占比小
 
         # 初始化数据记录器
         self.recording = False
@@ -82,39 +96,60 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.update_data)
         self.timer.start(100)  # 10Hz更新率
 
+    def changeEvent(self, event):
+        """处理窗口状态改变事件"""
+        if event.type() == QEvent.WindowStateChange:
+            if self.windowState() & Qt.WindowMaximized:
+                # 窗口最大化时保存之前的大小
+                if not self.previous_size:
+                    self.previous_size = self.size()
+            else:
+                # 从最大化恢复时使用保存的大小
+                if self.previous_size:
+                    self.resize(self.previous_size)
+                    self.previous_size = None
+        super().changeEvent(event)
+
     def setup_menu(self):
-        menubar = self.menuBar()
+        self.menubar = self.menuBar()
+        self.menubar.setNativeMenuBar(False)  # 确保菜单栏显示在窗口内
 
         # 文件菜单
-        file_menu = menubar.addMenu('文件')
+        self.file_menu = QMenu('文件(&F)', self)
+        self.menubar.addMenu(self.file_menu)
 
-        export_action = QAction('导出数据', self)
-        export_action.triggered.connect(self.export_data)
-        file_menu.addAction(export_action)
+        self.export_action = QAction('导出数据(&E)', self)
+        self.export_action.triggered.connect(self.export_data)
+        self.export_action.setShortcut('Ctrl+E')
+        self.file_menu.addAction(self.export_action)
 
-        playback_action = QAction('数据回放', self)
-        playback_action.triggered.connect(self.show_playback)
-        file_menu.addAction(playback_action)
+        self.playback_action = QAction('数据回放(&P)', self)
+        self.playback_action.triggered.connect(self.show_playback)
+        self.playback_action.setShortcut('Ctrl+P')
+        self.file_menu.addAction(self.playback_action)
 
         # 视图菜单
-        view_menu = menubar.addMenu('视图')
+        self.view_menu = QMenu('视图(&V)', self)
+        self.menubar.addMenu(self.view_menu)
 
-        theme_menu = view_menu.addMenu('主题')
-        dark_action = QAction('暗色主题', self)
-        light_action = QAction('亮色主题', self)
-        dark_action.triggered.connect(
+        self.theme_menu = self.view_menu.addMenu('主题(&T)')
+        self.dark_action = QAction('暗色主题(&D)', self)
+        self.light_action = QAction('亮色主题(&L)', self)
+        self.dark_action.triggered.connect(
             lambda: self.theme_manager.apply_dark_theme(QApplication.instance()))
-        light_action.triggered.connect(
+        self.light_action.triggered.connect(
             lambda: self.theme_manager.apply_light_theme(QApplication.instance()))
-        theme_menu.addAction(dark_action)
-        theme_menu.addAction(light_action)
+        self.theme_menu.addAction(self.dark_action)
+        self.theme_menu.addAction(self.light_action)
 
         # 工具菜单
-        tools_menu = menubar.addMenu('工具')
+        self.tools_menu = QMenu('工具(&T)', self)
+        self.menubar.addMenu(self.tools_menu)
 
-        analysis_action = QAction('数据分析', self)
-        analysis_action.triggered.connect(self.show_analysis)
-        tools_menu.addAction(analysis_action)
+        self.analysis_action = QAction('数据分析(&A)', self)
+        self.analysis_action.triggered.connect(self.show_analysis)
+        self.analysis_action.setShortcut('Ctrl+A')
+        self.tools_menu.addAction(self.analysis_action)
 
     def init_managers(self):
         self.theme_manager = ThemeManager()
@@ -187,33 +222,39 @@ class MainWindow(QMainWindow):
 
     def show_playback(self):
         """显示数据回放窗口"""
-        if not hasattr(self, 'playback_widget'):
-            try:
+        try:
+            if not hasattr(self, 'playback_widget'):
                 self.playback_widget = PlaybackWidget(
                     data_dir=self.data_dir,
                     parent=self
                 )
                 self.playback_widget.data_updated.connect(
                     self.plot_widget.update_from_playback)
-            except Exception as e:
-                rospy.logerr(f"创建回放窗口失败: {str(e)}")
-                QMessageBox.critical(self, "错误", f"创建回放窗口失败: {str(e)}")
-                return
-        self.playback_widget.show()
+            if self.playback_widget.isHidden():
+                self.playback_widget.show()
+            else:
+                self.playback_widget.raise_()
+                self.playback_widget.activateWindow()
+        except Exception as e:
+            rospy.logerr(f"显示回放窗口失败: {str(e)}")
+            QMessageBox.critical(self, "错误", f"显示回放窗口失败: {str(e)}")
 
     def show_analysis(self):
         """显示数据分析窗口"""
-        if not hasattr(self, 'analysis_widget'):
-            try:
+        try:
+            if not hasattr(self, 'analysis_widget'):
                 self.analysis_widget = AnalysisWidget(
                     data_dir=self.data_dir,
                     parent=self
                 )
-            except Exception as e:
-                rospy.logerr(f"创建分析窗口失败: {str(e)}")
-                QMessageBox.critical(self, "错误", f"创建分析窗口失败: {str(e)}")
-                return
-        self.analysis_widget.show()
+            if self.analysis_widget.isHidden():
+                self.analysis_widget.show()
+            else:
+                self.analysis_widget.raise_()
+                self.analysis_widget.activateWindow()
+        except Exception as e:
+            rospy.logerr(f"显示分析窗口失败: {str(e)}")
+            QMessageBox.critical(self, "错误", f"显示分析窗口失败: {str(e)}")
 
     def closeEvent(self, event):
         """处理关闭事件"""

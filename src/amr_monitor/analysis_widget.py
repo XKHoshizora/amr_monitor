@@ -10,6 +10,8 @@ from scipy.stats import pearsonr
 class AnalysisWidget(QWidget):
     def __init__(self, data_dir=None, parent=None):
         super().__init__(parent)
+        self.setWindowTitle("数据分析")
+        self.setMinimumSize(800, 600)
         self.data_dir = data_dir
         self.setup_ui()
 
