@@ -86,36 +86,62 @@ class ParameterWidget(QWidget):
     def setup_clients(self):
         """设置动态参数客户端"""
         try:
-            self.amcl_client = Client("/amcl", timeout=2.0)
-            self.dwa_client = Client("/move_base/DWAPlannerROS", timeout=2.0)
-            self.costmap_client = Client(
-                "/move_base/global_costmap/inflation_layer", timeout=2.0)
+            # 使用try-except分别处理每个客户端的连接
+            try:
+                self.amcl_client = Client("/amcl", timeout=2.0)
+                rospy.loginfo("已连接到AMCL参数服务器")
+            except Exception as e:
+                rospy.logwarn(f"无法连接到AMCL参数服务器: {e}")
+                self.amcl_client = None
+
+            try:
+                self.dwa_client = Client("/move_base/DWAPlannerROS", timeout=2.0)
+                rospy.loginfo("已连接到DWA参数服务器")
+            except Exception as e:
+                rospy.logwarn(f"无法连接到DWA参数服务器: {e}")
+                self.dwa_client = None
+
+            try:
+                self.costmap_client = Client("/move_base/global_costmap/inflation_layer", timeout=2.0)
+                rospy.loginfo("已连接到代价地图参数服务器")
+            except Exception as e:
+                rospy.logwarn(f"无法连接到代价地图参数服务器: {e}")
+                self.costmap_client = None
 
             # 初始化参数值
             self.refresh_parameters()
 
-        except rospy.ROSException as e:
-            rospy.logwarn(f"无法连接到某些参数服务器: {e}")
+        except Exception as e:
+            rospy.logwarn(f"参数服务器初始化失败: {e}")
 
     def refresh_parameters(self):
         """刷新所有参数值"""
-        if hasattr(self, 'amcl_client'):
-            config = self.amcl_client.get_configuration()
-            for param_name, widget in self.amcl_params.items():
-                if param_name in config:
-                    widget.setValue(config[param_name])
+        if hasattr(self, 'amcl_client') and self.amcl_client:
+            try:
+                config = self.amcl_client.get_configuration()
+                for param_name, widget in self.amcl_params.items():
+                    if param_name in config:
+                        widget.setValue(config[param_name])
+            except Exception as e:
+                rospy.logwarn(f"刷新AMCL参数失败: {e}")
 
-        if hasattr(self, 'dwa_client'):
-            config = self.dwa_client.get_configuration()
-            for param_name, widget in self.dwa_params.items():
-                if param_name in config:
-                    widget.setValue(config[param_name])
+        if hasattr(self, 'dwa_client') and self.dwa_client:
+            try:
+                config = self.dwa_client.get_configuration()
+                for param_name, widget in self.dwa_params.items():
+                    if param_name in config:
+                        widget.setValue(config[param_name])
+            except Exception as e:
+                rospy.logwarn(f"刷新DWA参数失败: {e}")
 
-        if hasattr(self, 'costmap_client'):
-            config = self.costmap_client.get_configuration()
-            for param_name, widget in self.costmap_params.items():
-                if param_name in config:
-                    widget.setValue(config[param_name])
+        if hasattr(self, 'costmap_client') and self.costmap_client:
+            try:
+                config = self.costmap_client.get_configuration()
+                for param_name, widget in self.costmap_params.items():
+                    if param_name in config:
+                        widget.setValue(config[param_name])
+            except Exception as e:
+                rospy.logwarn(f"刷新代价地图参数失败: {e}")
 
     def update_amcl_param(self, name, value):
         """更新AMCL参数"""

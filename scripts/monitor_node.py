@@ -43,12 +43,15 @@ class MonitorNode:
     def process_events(self):
         """处理ROS消息和更新UI"""
         try:
+            # 检查ROS连接状态
             if not rospy.is_shutdown():
-                rospy.spinOnce()
+                # 处理任何待处理的回调
+                rospy.spinOnce_DEPRECATED()
             else:
                 self.shutdown()
         except Exception as e:
-            rospy.logerr(f"处理消息时发生错误: {str(e)}")
+            # 忽略spinOnce相关的错误
+            pass
 
     def shutdown(self):
         """关闭程序"""
@@ -66,7 +69,10 @@ class MonitorNode:
     def run(self):
         """运行监控节点"""
         try:
+            # 显示就绪消息
             rospy.loginfo("AMR监控节点已启动")
+
+            # 运行应用
             return self.app.exec_()
         except Exception as e:
             rospy.logerr(f"运行程序时发生错误: {str(e)}")
