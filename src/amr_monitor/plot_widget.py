@@ -289,9 +289,7 @@ class PlotWidget(QWidget):
         if current_index < 0:
             return
 
-        # 获取当前标签页内容和标题
         title = self.tab_widget.tabText(current_index)
-
         try:
             # 创建新窗口
             new_window = QWidget()
@@ -299,44 +297,45 @@ class PlotWidget(QWidget):
             new_window.setWindowTitle(title)
             new_window.resize(600, 400)
 
-            # 创建新窗口的主布局
+            # 创建布局
             main_layout = QVBoxLayout(new_window)
             main_layout.setContentsMargins(10, 10, 10, 10)
 
-            # 创建内容容器
-            content_widget = QWidget()
-            content_layout = QVBoxLayout(content_widget)
-            content_layout.setContentsMargins(5, 5, 5, 5)
-
-            # 复制原始组件内容
+            # 获取原始布局中的所有组件
             if title in self.original_tab_contents:
                 original_widget = self.original_tab_contents[title]
                 original_layout = original_widget.layout()
 
+                # 创建内容容器
+                content_widget = QWidget()
+                content_layout = QVBoxLayout(content_widget)
+                content_layout.setContentsMargins(5, 5, 5, 5)
+
                 if original_layout:
-                    # 备份所有图表组件
-                    plots_to_move = []
+                    # 获取所有组件
+                    widgets_to_move = []
                     for i in range(original_layout.count()):
-                        plot = original_layout.itemAt(i).widget()
-                        if plot:
-                            plots_to_move.append(plot)
+                        widget = original_layout.itemAt(i).widget()
+                        if widget:
+                            widgets_to_move.append(widget)
 
-                    # 将所有图表移动到新窗口
-                    for plot in plots_to_move:
-                        plot.setParent(None)
-                        content_layout.addWidget(plot)
+                    # 移动组件到新布局
+                    for widget in widgets_to_move:
+                        original_layout.removeWidget(widget)
+                        content_layout.addWidget(widget)
 
-            main_layout.addWidget(content_widget)
+                main_layout.addWidget(content_widget)
 
             # 添加重新附加按钮
             attach_btn = QPushButton("重新附加到主窗口")
-            attach_btn.clicked.connect(lambda: self.attach_tab(title, new_window, content_layout))
+            attach_btn.clicked.connect(lambda: self.attach_tab(title, new_window, content_widget))
             main_layout.addWidget(attach_btn)
 
             # 存储窗口信息
             self.detached_windows[title] = {
                 'window': new_window,
-                'layout': content_layout
+                'content': content_widget,
+                'original_widget': self.original_tab_contents[title]
             }
 
             # 从标签页中移除
@@ -350,25 +349,29 @@ class PlotWidget(QWidget):
             rospy.logerr(f"分离标签页失败: {str(e)}")
             QMessageBox.critical(self, "错误", f"分离标签页失败: {str(e)}")
 
-    def attach_tab(self, title, window, content_layout):
+    def attach_tab(self, title, window, content_widget):
         """将标签页重新附加到主窗口"""
         try:
-            if title in self.detached_windows and title in self.original_tab_contents:
-                original_widget = self.original_tab_contents[title]
+            if title in self.detached_windows:
+                window_data = self.detached_windows[title]
+                original_widget = window_data['original_widget']
+
+                # 获取布局
+                content_layout = content_widget.layout()
                 original_layout = original_widget.layout()
 
-                if original_layout:
-                    # 备份所有图表组件
-                    plots_to_move = []
+                if content_layout and original_layout:
+                    # 获取所有组件
+                    widgets_to_move = []
                     for i in range(content_layout.count()):
-                        plot = content_layout.itemAt(i).widget()
-                        if plot:
-                            plots_to_move.append(plot)
+                        widget = content_layout.itemAt(i).widget()
+                        if widget:
+                            widgets_to_move.append(widget)
 
-                    # 将所有图表移动回原始布局
-                    for plot in plots_to_move:
-                        plot.setParent(None)
-                        original_layout.addWidget(plot)
+                    # 移动组件回原始布局
+                    for widget in widgets_to_move:
+                        content_layout.removeWidget(widget)
+                        original_layout.addWidget(widget)
 
                 # 重新添加到标签页
                 index = self.tab_widget.addTab(original_widget, title)
