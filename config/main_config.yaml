@@ -1,0 +1,56 @@
+# config/main_config.yaml
+# 全局配置
+global:
+  node_name: "amr_monitor"
+  log_level: "info"  # debug, info, warning, error, critical
+  log_dir: "$(env HOME)/.ros/amr_monitor/logs"  # 日志存储路径
+  data_dir: "$(env HOME)/.ros/amr_monitor/data"  # 数据存储路径
+
+# 监控器通用配置
+monitor:
+  update_interval: 0.1  # 更新间隔(秒)
+  buffer_size: 1000     # 数据缓冲大小
+  data_storage:
+    enabled: true       # 是否启用数据存储
+    format: "sqlite"    # 存储格式: sqlite, csv
+    cleanup_days: 30    # 数据保留天数
+
+# 性能监控配置
+performance:
+  enabled: true
+  update_interval: 1.0    # 性能检查间隔
+  thresholds:
+    cpu_warning: 80       # CPU警告阈值(%)
+    cpu_critical: 90      # CPU危险阈值(%)
+    memory_warning: 80    # 内存警告阈值(%)
+    memory_critical: 90   # 内存危险阈值(%)
+    storage_warning: 80   # 存储警告阈值(%)
+  optimization:
+    auto_optimize: true   # 启用自动优化
+    update_rate_min: 1.0  # 最小更新频率
+    update_rate_max: 30.0 # 最大更新频率
+
+# UI配置
+ui:
+  theme: "dark"           # 主题: dark, light
+  theme_path: "$(find amr_monitor)/resources/themes"  # 主题文件路径
+  update_rate: 30         # UI刷新率(Hz)
+  window:
+    width: 1200
+    height: 800
+    save_state: true      # 保存窗口状态
+  plots:
+    max_points: 1000      # 图表最大点数
+    default_colors:       # 默认曲线颜色
+      - "#1f77b4"  # 蓝色
+      - "#ff7f0e"  # 橙色
+      - "#2ca02c"  # 绿色
+      - "#d62728"  # 红色
+      - "#9467bd"  # 紫色
+    anti_aliasing: true   # 抗锯齿
+    use_opengl: true      # 使用OpenGL渲染
+
+# 话题配置
+topics:
+  config_path: "$(find amr_monitor)/config/topics"  # 话题配置文件路径
+  refresh_interval: 1.0   # 话题列表刷新间隔

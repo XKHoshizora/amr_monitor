@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>LidarMonitor</class>
+ <widget class="QWidget" name="LidarMonitor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <!-- 控制面板 -->
+   <item>
+    <widget class="QFrame" name="controlFrame">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QLabel" name="topicLabel">
+        <property name="text">
+         <string>Topic:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="topicComboBox">
+        <property name="minimumWidth">
+         <number>200</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="refreshButton">
+        <property name="text">
+         <string>Refresh</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="rangeLabel">
+        <property name="text">
+         <string>Range (m):</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDoubleSpinBox" name="rangeSpinBox">
+        <property name="minimum">
+         <double>1.0</double>
+        </property>
+        <property name="maximum">
+         <double>50.0</double>
+        </property>
+        <property name="value">
+         <double>10.0</double>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Line" name="line1">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="filteringCheckBox">
+        <property name="text">
+         <string>Enable Filtering</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="filterSettingsButton">
+        <property name="text">
+         <string>Filter Settings</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Line" name="line2">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="intensityCheckBox">
+        <property name="text">
+         <string>Show Intensity</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="clustersCheckBox">
+        <property name="text">
+         <string>Show Clusters</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="polarCheckBox">
+        <property name="text">
+         <string>Polar View</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="statusLabel">
+        <property name="text">
+         <string>Status: Not Connected</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <!-- 主显示区域 -->
+   <item>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <!-- 扫描数据显示 -->
+     <widget class="QGroupBox" name="scanGroup">
+      <property name="title">
+       <string>Scan Data</string>
+      </property>
+      <layout class="QVBoxLayout" name="scanLayout">
+        <item>
+         <widget class="QWidget" name="plotWidget"/>
+        </item>
+        <item>
+         <widget class="QFrame" name="plotControlFrame">
+          <layout class="QHBoxLayout" name="plotControlLayout">
+           <item>
+            <widget class="QLabel" name="minRangeLabel">
+             <property name="text">
+              <string>Min Range:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QDoubleSpinBox" name="minRangeSpinBox">
+             <property name="maximum">
+              <double>10.0</double>
+             </property>
+             <property name="value">
+              <double>0.1</double>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="maxRangeLabel">
+             <property name="text">
+              <string>Max Range:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QDoubleSpinBox" name="maxRangeSpinBox">
+             <property name="maximum">
+              <double>50.0</double>
+             </property>
+             <property name="value">
+              <double>30.0</double>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="resetViewButton">
+             <property name="text">
+              <string>Reset View</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+      </layout>
+     </widget>
+     <!-- 统计信息 -->
+     <widget class="QGroupBox" name="statsGroup">
+      <property name="title">
+       <string>Statistics</string>
+      </property>
+      <layout class="QVBoxLayout" name="statsLayout">
+       <item>
+        <widget class="QTableWidget" name="statsTable">
+         <property name="minimumWidth">
+          <number>250</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="clusterGroup">
+         <property name="title">
+          <string>Cluster Information</string>
+         </property>
+         <layout class="QVBoxLayout" name="clusterLayout">
+          <item>
+           <widget class="QTableWidget" name="clusterTable"/>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+
+   <!-- 信息显示区域 -->
+   <item>
+    <widget class="QFrame" name="infoFrame">
+     <layout class="QGridLayout" name="infoLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="scanInfoLabel">
+        <property name="text">
+         <string>Scan Info: angle_min=0.0, angle_max=0.0, angle_increment=0.0</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="rangeInfoLabel">
+        <property name="text">
+         <string>Range: min=0.0, max=0.0, avg=0.0</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="pointsLabel">
+        <property name="text">
+         <string>Points: valid=0/total=0</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLabel" name="performanceLabel">
+        <property name="text">
+         <string>Performance: freq=0.0Hz, proc_time=0.0ms</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <!-- 状态栏 -->
+   <item>
+    <widget class="QStatusBar" name="statusBar"/>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

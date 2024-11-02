@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CmdVelMonitor</class>
+ <widget class="QWidget" name="CmdVelMonitor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <!-- 控制面板 -->
+   <item>
+    <widget class="QFrame" name="controlFrame">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QLabel" name="topicLabel">
+        <property name="text">
+         <string>Topic:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="topicComboBox">
+        <property name="minimumWidth">
+         <number>200</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="refreshButton">
+        <property name="text">
+         <string>Refresh</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="filteringCheckBox">
+        <property name="text">
+         <string>Enable Filtering</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="filterSettingsButton">
+        <property name="text">
+         <string>Filter Settings</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Line" name="line">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="analysisCheckBox">
+        <property name="text">
+         <string>Motion Analysis</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="statusLabel">
+        <property name="text">
+         <string>Status: Not Connected</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <!-- 图表区域 -->
+   <item>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <!-- 速度图表 -->
+     <widget class="QFrame" name="plotFrame">
+      <layout class="QVBoxLayout" name="plotLayout">
+       <!-- 线速度图 -->
+       <item>
+        <widget class="QGroupBox" name="linearVelGroup">
+         <property name="title">
+          <string>Linear Velocity (m/s)</string>
+         </property>
+         <layout class="QVBoxLayout" name="linearVelLayout"/>
+        </widget>
+       </item>
+       <!-- 角速度图 -->
+       <item>
+        <widget class="QGroupBox" name="angularVelGroup">
+         <property name="title">
+          <string>Angular Velocity (rad/s)</string>
+         </property>
+         <layout class="QVBoxLayout" name="angularVelLayout"/>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <!-- 运动分析 -->
+     <widget class="QFrame" name="analysisFrame">
+      <layout class="QVBoxLayout" name="analysisLayout">
+       <!-- 当前状态 -->
+       <item>
+        <widget class="QGroupBox" name="currentStateGroup">
+         <property name="title">
+          <string>Current State</string>
+         </property>
+         <layout class="QGridLayout" name="currentStateLayout">
+          <item row="0" column="0">
+           <widget class="QLabel" name="linearSpeedLabel">
+            <property name="text">
+             <string>Linear Speed:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QProgressBar" name="linearSpeedBar">
+            <property name="format">
+             <string>%v m/s</string>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="angularSpeedLabel">
+            <property name="text">
+             <string>Angular Speed:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QProgressBar" name="angularSpeedBar">
+            <property name="format">
+             <string>%v rad/s</string>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <!-- 运动特征 -->
+       <item>
+        <widget class="QGroupBox" name="motionProfileGroup">
+         <property name="title">
+          <string>Motion Profile</string>
+         </property>
+         <layout class="QVBoxLayout" name="motionProfileLayout">
+          <item>
+           <widget class="QTableWidget" name="profileTable">
+            <property name="minimumHeight">
+             <number>200</number>
+            </property>
+            <property name="columnCount">
+             <number>2</number>
+            </property>
+            <column>
+             <property name="text">
+              <string>Metric</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Value</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="exportDataButton">
+            <property name="text">
+             <string>Export Data</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+
+   <!-- 信息显示区域 -->
+   <item>
+    <widget class="QFrame" name="infoFrame">
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="linearVelLabel">
+        <property name="text">
+         <string>Linear Velocity (m/s): x=0.00, y=0.00, z=0.00</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="angularVelLabel">
+        <property name="text">
+         <string>Angular Velocity (rad/s): x=0.00, y=0.00, z=0.00</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="limitsLabel">
+        <property name="text">
+         <string>Limits: lin=0.00 m/s, ang=0.00 rad/s</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLabel" name="performanceLabel">
+        <property name="text">
+         <string>Performance: freq=0.0Hz, cpu=0%</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <!-- 状态栏 -->
+   <item>
+    <widget class="QStatusBar" name="statusBar"/>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

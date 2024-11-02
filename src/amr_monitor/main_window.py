@@ -1,343 +1,414 @@
-import os
+# src/amr_monitor/main_window.py
+"""主窗口实现"""
 import sys
+import time
+import threading
+from typing import Optional
+
 import rospy
-import rospkg
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from datetime import datetime
-import pandas as pd
-from .plot_widget import PlotWidget
-from .parameter_widget import ParameterWidget
-from .playback_widget import PlaybackWidget
-from .theme_manager import ThemeManager
-from .config_manager import ConfigManager
-from .analysis_widget import AnalysisWidget
+from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QTabWidget,
+                               QMessageBox, QFileDialog, QApplication, QLabel)
+from PySide6.QtCore import Qt, QSettings, QTimer, Signal
+
+from amr_monitor.core.config import ConfigManager
+from amr_monitor.core.event_bus import EventBus, Event
+from amr_monitor.core.logger import Logger
+from amr_monitor.core.error_handler import handle_error, ErrorType, ErrorSeverity
+from amr_monitor.core.monitor_manager import monitor_manager
+from amr_monitor.core.topic_manager import topic_manager
+from amr_monitor.utils.storage import StorageManager
+from amr_monitor.ui.themes.theme_manager import ThemeManager
+
+from amr_monitor.monitors import (
+    IMUMonitor,
+    OdomMonitor,
+    LidarMonitor,
+    CmdVelMonitor,
+    BaseMonitor
+)
+
+logger = Logger.get_logger(__name__)
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    """AMR监控器主窗口"""
+
+    def __init__(self, config_manager: ConfigManager,
+                 event_bus: EventBus, storage_manager: StorageManager):
         super().__init__()
-        # 初始化包路径
-        rospack = rospkg.RosPack()
-        self.package_path = rospack.get_path('amr_monitor')
-        self.data_dir = os.path.join(self.package_path, 'data')
+        # 核心组件
+        self.config_manager = config_manager
+        self.event_bus = event_bus
+        self.storage_manager = storage_manager
+        self.theme_manager = ThemeManager()
 
-        # 确保数据目录存在
-        os.makedirs(self.data_dir, exist_ok=True)
+        # UI初始化
+        self.setup_ui()
+        self.setup_monitors()
+        self.setup_events()
 
-        # 初始化管理器
-        self.init_managers()
-
-        # 应用配置
-        config = self.config_manager.get_config()
-        self.setWindowTitle('AMR Monitor')
+        # 加载主题和布局
+        self.load_theme()
+        self.load_layout()
 
         # 设置窗口属性
-        self.setMinimumSize(800, 600)  # 设置最小尺寸
-        self.resize(
-            config['ui']['window']['width'],
-            config['ui']['window']['height']
-        )
+        self.setWindowTitle("AMR Monitor")
+        self.resize(1200, 800)
 
-        # 设置窗口状态
-        self.previous_size = None  # 用于存储最大化前的尺寸
-        self.setup_ui()
-        self.setup_menu()
+        # 设置定时同步
+        self.sync_timer = QTimer(self)
+        self.sync_timer.timeout.connect(self.sync_monitors)
+        self.sync_timer.start(1000)  # 每秒同步一次
 
     def setup_ui(self):
-        # 创建中心部件和布局
+        """设置UI"""
+        # 创建中央部件
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
-        self.main_layout = QHBoxLayout(self.central_widget)
-        self.main_layout.setContentsMargins(5, 5, 5, 5)  # 设置边距
-        self.main_layout.setSpacing(5)  # 设置组件间距
 
-        # 创建左右分割窗口
-        self.splitter = QSplitter(Qt.Horizontal)
-        self.splitter.setHandleWidth(5)  # 设置分割条宽度
-        self.main_layout.addWidget(self.splitter)
+        # 主布局
+        self.main_layout = QVBoxLayout(self.central_widget)
 
-        # 左侧放置传感器数据显示
-        left_widget = QWidget()
-        left_layout = QVBoxLayout(left_widget)
-        left_layout.setContentsMargins(0, 0, 0, 0)
+        # 标签页
+        self.tab_widget = QTabWidget()
+        self.main_layout.addWidget(self.tab_widget)
 
-        # 传感器数据图表
-        self.plot_widget = PlotWidget()
-        left_layout.addWidget(self.plot_widget, stretch=1)  # 添加拉伸因子
+        # 连接标签页切换信号
+        self.tab_widget.currentChanged.connect(self._handle_tab_changed)
 
-        # 添加数据记录控制
-        record_group = QGroupBox("数据记录")
-        record_layout = QHBoxLayout()
-        record_layout.setContentsMargins(5, 5, 5, 5)
-        self.record_button = QPushButton("开始记录")
-        self.record_button.setCheckable(True)
-        self.record_button.toggled.connect(self.toggle_recording)
-        record_layout.addWidget(self.record_button)
-        record_group.setLayout(record_layout)
-        left_layout.addWidget(record_group)
+        # 创建菜单
+        self.create_menu_bar()
 
-        self.splitter.addWidget(left_widget)
+        # 创建状态栏
+        self.statusBar().showMessage("Ready")
 
-        # 右侧放置参数显示和控制
-        self.parameter_widget = ParameterWidget()
-        self.splitter.addWidget(self.parameter_widget)
-
-        # 设置分割比例
-        self.splitter.setStretchFactor(0, 2)  # 左侧占比大
-        self.splitter.setStretchFactor(1, 1)  # 右侧占比小
-
-        # 初始化数据记录器
-        self.recording = False
-        self.data_buffer = []
-
-        # 设置定时器更新UI
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_data)
-        self.timer.start(100)  # 10Hz更新率
-
-    def changeEvent(self, event):
-        """处理窗口状态改变事件"""
-        if event.type() == QEvent.WindowStateChange:
-            if self.windowState() & Qt.WindowMaximized:
-                # 窗口最大化时保存之前的大小
-                if not self.previous_size:
-                    self.previous_size = self.size()
-            else:
-                # 从最大化恢复时使用保存的大小
-                if self.previous_size:
-                    self.resize(self.previous_size)
-                    self.previous_size = None
-        super().changeEvent(event)
-
-    def setup_menu(self):
-        self.menubar = self.menuBar()
-        self.menubar.setNativeMenuBar(False)
+    def create_menu_bar(self):
+        """创建菜单栏"""
+        menubar = self.menuBar()
 
         # 文件菜单
-        self.file_menu = QMenu('文件(&F)', self)
-        self.menubar.addMenu(self.file_menu)
-
-        self.export_action = QAction('导出数据(&E)', self)
-        self.export_action.triggered.connect(self.export_data)
-        self.export_action.setShortcut('Ctrl+E')
-        self.file_menu.addAction(self.export_action)
-
-        self.playback_action = QAction('数据回放(&P)', self)
-        self.playback_action.triggered.connect(self.show_playback)
-        self.playback_action.setShortcut('Ctrl+P')
-        self.file_menu.addAction(self.playback_action)
+        file_menu = menubar.addMenu("File")
+        file_menu.addAction("Save Layout", self.save_layout)
+        file_menu.addAction("Load Layout", self.load_layout)
+        file_menu.addAction("Export Data", self.export_all_data)
+        file_menu.addSeparator()
+        file_menu.addAction("Exit", self.close)
 
         # 视图菜单
-        self.view_menu = QMenu('视图(&V)', self)
-        self.menubar.addMenu(self.view_menu)
+        view_menu = menubar.addMenu("View")
+        view_menu.addAction("Reset Layout", self.reset_layout)
+        view_menu.addAction("Refresh All", self.refresh_all_topics)
 
-        # 创建数据视图子菜单并添加基本选项
-        self.data_view_menu = QMenu('数据视图(&D)', self)
-        self.view_menu.addMenu(self.data_view_menu)
-
-        # 添加默认的数据视图选项
-        self.view_actions = {}
-        default_views = {
-            'IMU数据': True,
-            '里程计数据': True,
-            '激光雷达数据': True
-        }
-        for title, initial_state in default_views.items():
-            action = QAction(title, self)
+        # 主题子菜单
+        theme_menu = view_menu.addMenu("Theme")
+        theme_actions = {}
+        for theme_name in self.theme_manager.get_available_themes():
+            action = theme_menu.addAction(theme_name)
             action.setCheckable(True)
-            action.setChecked(initial_state)
-            action.triggered.connect(lambda checked, t=title: self.toggle_tab_view(t, checked))
-            self.data_view_menu.addAction(action)
-            self.view_actions[title] = action
-
-        # 主题菜单
-        self.theme_menu = self.view_menu.addMenu('主题(&T)')
-        self.dark_action = QAction('暗色主题(&D)', self)
-        self.light_action = QAction('亮色主题(&L)', self)
-        self.dark_action.triggered.connect(
-            lambda: self.theme_manager.apply_dark_theme(QApplication.instance()))
-        self.light_action.triggered.connect(
-            lambda: self.theme_manager.apply_light_theme(QApplication.instance()))
-        self.theme_menu.addAction(self.dark_action)
-        self.theme_menu.addAction(self.light_action)
+            theme_actions[theme_name] = action
+            action.triggered.connect(
+                lambda checked, name=theme_name: self.apply_theme(name))
 
         # 工具菜单
-        self.tools_menu = QMenu('工具(&T)', self)
-        self.menubar.addMenu(self.tools_menu)
+        tools_menu = menubar.addMenu("Tools")
+        tools_menu.addAction("Clear All Data", self.clear_all_data)
+        tools_menu.addAction("Monitor Status", self.show_monitor_status)
 
-        self.analysis_action = QAction('数据分析(&A)', self)
-        self.analysis_action.triggered.connect(self.show_analysis)
-        self.analysis_action.setShortcut('Ctrl+A')
-        self.tools_menu.addAction(self.analysis_action)
+        # 帮助菜单
+        help_menu = menubar.addMenu("Help")
+        help_menu.addAction("About", self.show_about)
 
-        # 存储已关闭的标签页
-        self.closed_tabs = {}
+    def setup_monitors(self):
+        """设置监控器"""
+        monitor_classes = {
+            'IMU': IMUMonitor,
+            'Odometry': OdomMonitor,
+            'LiDAR': LidarMonitor,
+            'CMD_VEL': CmdVelMonitor
+        }
 
-    def add_to_view_menu(self, tab, title):
-        """添加标签页到视图菜单"""
-        # 存储标签页
-        self.closed_tabs[title] = tab
-
-        # 创建动作
-        action = QAction(title, self)
-        action.setCheckable(True)
-        action.setChecked(False)
-        action.triggered.connect(lambda checked: self.toggle_tab_view(title, checked))
-
-        # 添加到数据视图菜单
-        self.data_view_menu.addAction(action)
-
-    def toggle_tab_view(self, title, checked):
-        """切换标签页显示状态"""
-        if hasattr(self.plot_widget, 'tab_widget'):
-            tab_widget = self.plot_widget.tab_widget
-
-            if checked:
-                # 如果是选中状态，显示标签页
-                if title in self.closed_tabs:
-                    tab = self.closed_tabs[title]
-                    tab_widget.addTab(tab, title)
-                    del self.closed_tabs[title]
-                # 如果标签页不在关闭列表中，可能需要重新创建
-                elif title in self.plot_widget.original_tab_contents:
-                    tab = self.plot_widget.original_tab_contents[title]
-                    tab_widget.addTab(tab, title)
-            else:
-                # 如果是取消选中状态，隐藏标签页
-                for i in range(tab_widget.count()):
-                    if tab_widget.tabText(i) == title:
-                        tab = tab_widget.widget(i)
-                        self.closed_tabs[title] = tab
-                        tab_widget.removeTab(i)
-                        break
-
-            # 确保菜单项状态与实际显示状态同步
-            if title in self.view_actions:
-                is_visible = any(tab_widget.tabText(i) == title
-                            for i in range(tab_widget.count()))
-                self.view_actions[title].setChecked(is_visible)
-
-    def init_managers(self):
-        self.theme_manager = ThemeManager()
-        self.config_manager = ConfigManager()
-
-    def toggle_recording(self, checked):
-        if checked:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.filename = os.path.join(self.data_dir, f"amr_data_{timestamp}.csv")
-            self.record_button.setText("停止记录")
-            self.recording = True
-            self.plot_widget.set_recording(True)  # 设置图表记录状态
-        else:
-            self.save_recorded_data()
-            self.record_button.setText("开始记录")
-            self.recording = False
-            self.plot_widget.set_recording(False)  # 设置图表记录状态
-            self.data_buffer = []
-
-    def save_recorded_data(self):
-        if self.data_buffer:
+        for name, monitor_class in monitor_classes.items():
             try:
-                df = pd.DataFrame(self.data_buffer)
-                df.to_csv(self.filename, index=False)
-                QMessageBox.information(
-                    self,
-                    "保存成功",
-                    f"数据已保存至: {os.path.relpath(self.filename, self.package_path)}"
+                config = self.config_manager.get_monitor_config(name.lower())
+                monitor = monitor_class(config, self.event_bus)
+                self.add_monitor(name, monitor)
+            except Exception as e:
+                error_msg = f"Failed to create {name} monitor: {str(e)}"
+                handle_error(ErrorType.SYSTEM, ErrorSeverity.ERROR,
+                             error_msg, "MainWindow")
+
+    def add_monitor(self, name: str, monitor: BaseMonitor):
+        """添加监控器"""
+        if monitor_manager.register_monitor(name, monitor):
+            self.tab_widget.addTab(monitor, name)
+            monitor_manager.monitor_status_changed.connect(
+                lambda mon, status: self._update_monitor_status(mon, status))
+            monitor_manager.monitor_error.connect(
+                lambda mon, error: self._handle_monitor_error(mon, error))
+
+    def setup_events(self):
+        """设置事件处理"""
+        self.event_bus.subscribe('monitor_data', self._handle_monitor_data)
+        self.event_bus.subscribe('error', self._handle_error)
+
+    def _handle_monitor_data(self, event: Event):
+        """处理监控数据"""
+        if self.storage_manager:
+            try:
+                self.storage_manager.store_data(
+                    event.source,
+                    'monitor_data',
+                    event.data
                 )
             except Exception as e:
-                QMessageBox.critical(
-                    self,
-                    "保存失败",
-                    f"保存数据失败: {str(e)}"
-                )
+                logger.error(f"Failed to store data: {e}")
 
-    def update_data(self):
-        # 更新图表显示
-        self.plot_widget.update_plots()
+    def _handle_error(self, event: Event):
+        """处理错误事件"""
+        handle_error(
+            ErrorType.SYSTEM,
+            ErrorSeverity.ERROR,
+            str(event.data),
+            event.source
+        )
+        self.statusBar().showMessage(f"Error: {event.data}", 5000)
 
-        # 如果正在记录，则保存数据
-        if self.recording:
-            data = self.plot_widget.get_current_data()
-            self.data_buffer.append(data)
+    def _handle_tab_changed(self, index: int):
+        if index >= 0:
+            current_name = self.tab_widget.tabText(index)
+            # 先停用所有监控器
+            active_monitors = monitor_manager.get_active_monitors()
+            for name in active_monitors:
+                if name != current_name:
+                    monitor_manager.deactivate_monitor(name)
+            # 再激活当前监控器
+            monitor_manager.activate_monitor(current_name)
 
-    def export_data(self):
-        if not self.data_buffer:
-            QMessageBox.warning(self, "警告", "没有可导出的数据")
+    def _update_monitor_status(self, monitor_name: str, status: str):
+        """更新监控器状态显示"""
+        index = self._get_tab_index(monitor_name)
+        if index >= 0:
+            current_text = self.tab_widget.tabText(index)
+            if status == "error":
+                self.tab_widget.setTabText(index, f"{current_text} ⚠")
+            else:
+                self.tab_widget.setTabText(index, monitor_name)
+
+    def _handle_monitor_error(self, monitor_name: str, error: str):
+        """处理监控器错误"""
+        handle_error(
+            ErrorType.SYSTEM,
+            ErrorSeverity.ERROR,
+            error,
+            monitor_name
+        )
+        self.statusBar().showMessage(f"Error in {monitor_name}: {error}", 5000)
+
+    def _get_tab_index(self, name: str) -> int:
+        """获取标签页索引"""
+        for i in range(self.tab_widget.count()):
+            if self.tab_widget.tabText(i).startswith(name):
+                return i
+        return -1
+
+    def sync_monitors(self):
+        """同步所有监控器"""
+        monitor_manager.sync_monitors()
+
+    def refresh_all_topics(self):
+        """刷新所有话题"""
+        for monitor in monitor_manager.monitors.values():
+            if hasattr(monitor, '_on_refresh_clicked'):
+                monitor._on_refresh_clicked()
+
+    def show_monitor_status(self):
+        """显示监控器状态"""
+        status_text = "Monitor Status:\n\n"
+        for name, status in monitor_manager.monitor_status.items():
+            status_text += (f"{name}:\n"
+                            f"  Status: {status.health_status}\n"
+                            f"  Active: {status.is_active}\n"
+                            f"  Errors: {status.error_count}\n"
+                            f"  Last Update: {time.ctime(status.last_update)}\n\n")
+
+        QMessageBox.information(self, "Monitor Status", status_text)
+
+    def show_about(self):
+        """显示关于对话框"""
+        QMessageBox.about(
+            self,
+            "About AMR Monitor",
+            "AMR Monitor v1.0.0\n\n"
+            "A monitoring tool for AMR robots\n\n"
+            "Created by Hoshizora"
+        )
+
+    def load_theme(self):
+        """加载主题"""
+        theme = self.config_manager.get_config('ui', {}).get('theme', 'dark')
+        self.apply_theme(theme)
+
+    def apply_theme(self, theme_name: str):
+        """应用主题"""
+        if self.theme_manager.apply_theme(self, theme_name):
+            self.config_manager.set_config(['ui', 'theme'], theme_name)
+
+    def save_layout(self):
+        """保存布局"""
+        try:
+            settings = QSettings('AMR_Monitor', 'Layout')
+            settings.setValue('geometry', self.saveGeometry())
+            settings.setValue('state', self.saveState())
+            settings.setValue('tab_index', self.tab_widget.currentIndex())
+            self.statusBar().showMessage("Layout saved", 3000)
+        except Exception as e:
+            logger.error(f"Failed to save layout: {e}")
+
+    def load_layout(self):
+        """加载布局"""
+        try:
+            settings = QSettings('AMR_Monitor', 'Layout')
+            geometry = settings.value('geometry')
+            state = settings.value('state')
+            tab_index = settings.value('tab_index', 0, type=int)
+
+            if geometry:
+                self.restoreGeometry(geometry)
+            if state:
+                self.restoreState(state)
+            self.tab_widget.setCurrentIndex(tab_index)
+        except Exception as e:
+            logger.error(f"Failed to load layout: {e}")
+
+    def reset_layout(self):
+        """重置布局"""
+        reply = QMessageBox.question(
+            self,
+            "Reset Layout",
+            "Are you sure you want to reset the layout?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            self.resize(1200, 800)
+            self.tab_widget.setCurrentIndex(0)
+            for monitor in monitor_manager.monitors.values():
+                if hasattr(monitor, 'reset_layout'):
+                    monitor.reset_layout()
+
+    def export_all_data(self):
+        """导出所有数据"""
+        if not self.storage_manager:
+            QMessageBox.warning(self, "Warning", "Storage is not enabled")
             return
 
-        filename, _ = QFileDialog.getSaveFileName(
-            self,
-            "导出数据",
-            os.path.join(self.data_dir, "exported_data.csv"),
-            "CSV Files (*.csv)"
+        try:
+            directory = QFileDialog.getExistingDirectory(
+                self, "Select Export Directory")
+
+            if directory:
+                for name in monitor_manager.monitors.keys():
+                    filename = f"{directory}/{name}_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+                    if self.storage_manager.export_data(name, filename):
+                        logger.info(f"Exported data for {name} to {filename}")
+                    else:
+                        logger.warning(f"No data to export for {name}")
+
+                self.statusBar().showMessage("Data exported successfully", 3000)
+        except Exception as e:
+            error_msg = f"Failed to export data: {str(e)}"
+            handle_error(ErrorType.SYSTEM, ErrorSeverity.ERROR,
+                         error_msg, "MainWindow")
+
+    def clear_all_data(self):
+        """清空所有数据"""
+        reply = QMessageBox.question(
+            self, 'Confirm Clear',
+            'Are you sure you want to clear all data?',
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
         )
-        if filename:
+
+        if reply == QMessageBox.Yes:
             try:
-                df = pd.DataFrame(self.data_buffer)
-                df.to_csv(filename, index=False)
-                QMessageBox.information(
-                    self,
-                    "导出成功",
-                    f"数据已导出至: {os.path.relpath(filename, self.package_path)}"
-                )
+                if self.storage_manager:
+                    self.storage_manager.clear_all()
+                for monitor in monitor_manager.monitors.values():
+                    monitor.clear_data()
+                self.statusBar().showMessage("All data cleared", 3000)
             except Exception as e:
-                QMessageBox.critical(
-                    self,
-                    "导出失败",
-                    f"导出数据失败: {str(e)}"
-                )
-
-    def show_playback(self):
-        """显示数据回放窗口"""
-        try:
-            # 总是创建新窗口
-            self.playback_widget = PlaybackWidget(
-                data_dir=self.data_dir,
-                parent=None  # 设置为None使其成为独立窗口
-            )
-            self.playback_widget.data_updated.connect(
-                self.plot_widget.update_from_playback)
-            self.playback_widget.show()
-            self.playback_widget.raise_()
-            self.playback_widget.activateWindow()
-        except Exception as e:
-            rospy.logerr(f"显示回放窗口失败: {str(e)}")
-            QMessageBox.critical(self, "错误", f"显示回放窗口失败: {str(e)}")
-
-    def show_analysis(self):
-        """显示数据分析窗口"""
-        try:
-            # 总是创建新窗口
-            self.analysis_widget = AnalysisWidget(
-                data_dir=self.data_dir,
-                parent=None  # 设置为None使其成为独立窗口
-            )
-            self.analysis_widget.show()
-            self.analysis_widget.raise_()
-            self.analysis_widget.activateWindow()
-        except Exception as e:
-            rospy.logerr(f"显示分析窗口失败: {str(e)}")
-            QMessageBox.critical(self, "错误", f"显示分析窗口失败: {str(e)}")
+                error_msg = f"Failed to clear data: {str(e)}"
+                handle_error(ErrorType.SYSTEM, ErrorSeverity.ERROR,
+                             error_msg, "MainWindow")
 
     def closeEvent(self, event):
-        """处理关闭事件"""
-        if self.recording:
-            reply = QMessageBox.question(
-                self, '确认退出',
-                '正在记录数据，确定要退出吗？',
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
-            )
-            if reply == QMessageBox.Yes:
-                self.toggle_recording(False)
-                event.accept()
-            else:
-                event.ignore()
-        else:
-            # 关闭所有分离的窗口
-            if hasattr(self.plot_widget, 'detached_windows'):
-                for window in self.plot_widget.detached_windows.values():
-                    window.close()
+        """关闭事件处理"""
+        reply = QMessageBox.question(
+            self, 'Confirm Exit',
+            'Are you sure you want to exit?',
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            self.cleanup()
             event.accept()
+        else:
+            event.ignore()
+
+    def cleanup(self):
+        """清理资源"""
+        try:
+            # 停止同步定时器
+            if hasattr(self, 'sync_timer'):
+                self.sync_timer.stop()
+
+            # 需要在停止定时器后等待定时器回调完成
+            QApplication.processEvents()
+
+            # 停止所有监控器
+            for name in list(monitor_manager.monitors.keys()):
+                try:
+                    monitor_manager.deactivate_monitor(name)
+                    monitor_manager.unregister_monitor(name)
+                except Exception as e:
+                    logger.error(f"Failed to cleanup monitor {name}: {e}")
+
+            # 取消所有话题订阅
+            topic_manager.cleanup()
+
+            # 保存布局
+            self.save_layout()
+
+            # 关闭存储
+            if self.storage_manager:
+                try:
+                    self.storage_manager.close()
+                except Exception as e:
+                    logger.error(f"Failed to close storage manager: {e}")
+
+            # 清理事件总线
+            self.event_bus.clear()
+
+            # 断开所有信号连接
+            self.disconnect_signals()
+
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
+
+    def disconnect_signals(self):
+        """断开所有信号连接"""
+        try:
+            # 断开标签页切换信号
+            self.tab_widget.currentChanged.disconnect()
+
+            # 断开监控器管理器信号
+            monitor_manager.monitor_status_changed.disconnect()
+            monitor_manager.monitor_error.disconnect()
+
+            # 断开事件总线订阅
+            self.event_bus.unsubscribe(
+                'monitor_data', self._handle_monitor_data)
+            self.event_bus.unsubscribe('error', self._handle_error)
+        except Exception as e:
+            logger.error(f"Error disconnecting signals: {e}")

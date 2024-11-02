@@ -1,0 +1,37 @@
+odom:
+  topic: "/odom"
+  msg_type: "nav_msgs/Odometry"
+  buffer_size: 1000
+  update_rate: 50  # Hz
+
+  filters:
+    position:
+      type: "kalman"
+      process_noise: 0.1
+      measurement_noise: 0.1
+    velocity:
+      type: "kalman"
+      process_noise: 0.1
+      measurement_noise: 0.1
+
+  trajectory:
+    max_points: 1000
+    line_width: 2
+    color: "#1f77b4"
+    show_current_position: true
+    current_position_color: "#d62728"
+
+  plots:
+    velocity:
+      title: "Velocity"
+      x_label: "Time (s)"
+      y_label: "m/s, rad/s"
+      curves:
+        - name: "linear"
+          color: "#1f77b4"
+        - name: "angular"
+          color: "#ff7f0e"
+
+  limits:
+    max_linear_speed: 1.0   # m/s
+    max_angular_speed: 1.5  # rad/s

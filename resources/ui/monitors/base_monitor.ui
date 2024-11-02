@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>BaseMonitor</class>
+ <widget class="QWidget" name="BaseMonitor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>600</width>
+    <height>400</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QFrame" name="controlFrame">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QLabel" name="topicLabel">
+        <property name="text">
+         <string>Topic:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="topicComboBox">
+        <property name="minimumWidth">
+         <number>200</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="refreshButton">
+        <property name="text">
+         <string>Refresh</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="statusLabel">
+        <property name="text">
+         <string>Status: Not Connected</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="plotFrame">
+     <layout class="QVBoxLayout" name="plotLayout"/>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="infoFrame">
+     <layout class="QHBoxLayout" name="infoLayout">
+      <item>
+       <widget class="QLabel" name="dataInfoLabel">
+        <property name="text">
+         <string>No data received</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

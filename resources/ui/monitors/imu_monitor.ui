@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>IMUMonitor</class>
+ <widget class="QWidget" name="IMUMonitor">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <!-- 控制面板 -->
+   <item>
+    <widget class="QFrame" name="controlFrame">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QLabel" name="topicLabel">
+        <property name="text">
+         <string>Topic:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="topicComboBox">
+        <property name="minimumWidth">
+         <number>200</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="refreshButton">
+        <property name="text">
+         <string>Refresh</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="bufferLabel">
+        <property name="text">
+         <string>Buffer:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSpinBox" name="bufferSizeSpinBox">
+        <property name="minimum">
+         <number>100</number>
+        </property>
+        <property name="maximum">
+         <number>10000</number>
+        </property>
+        <property name="value">
+         <number>500</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Line" name="line">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="filteringCheckBox">
+        <property name="text">
+         <string>Enable Filtering</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="filterSettingsButton">
+        <property name="text">
+         <string>Filter Settings</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="statusLabel">
+        <property name="text">
+         <string>Status: Not Connected</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <!-- 图表区域 -->
+   <item>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <!-- 角速度图 -->
+     <widget class="QGroupBox" name="angularVelGroup">
+      <property name="title">
+       <string>Angular Velocity (rad/s)</string>
+      </property>
+      <layout class="QVBoxLayout" name="angularVelLayout"/>
+     </widget>
+     <!-- 线加速度图 -->
+     <widget class="QGroupBox" name="linearAccGroup">
+      <property name="title">
+       <string>Linear Acceleration (m/s²)</string>
+      </property>
+      <layout class="QVBoxLayout" name="linearAccLayout"/>
+     </widget>
+     <!-- 姿态图 -->
+     <widget class="QGroupBox" name="orientationGroup">
+      <property name="title">
+       <string>Orientation (degrees)</string>
+      </property>
+      <layout class="QVBoxLayout" name="orientationLayout"/>
+     </widget>
+    </widget>
+   </item>
+
+   <!-- 信息显示区域 -->
+   <item>
+    <widget class="QFrame" name="infoFrame">
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="angularVelLabel">
+        <property name="text">
+         <string>Angular Velocity: x=0.00, y=0.00, z=0.00</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="linearAccLabel">
+        <property name="text">
+         <string>Linear Acceleration: x=0.00, y=0.00, z=0.00</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="orientationLabel">
+        <property name="text">
+         <string>Orientation: r=0.00, p=0.00, y=0.00</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLabel" name="performanceLabel">
+        <property name="text">
+         <string>Performance: CPU=0%, Memory=0%</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <!-- 状态栏 -->
+   <item>
+    <widget class="QStatusBar" name="statusBar"/>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

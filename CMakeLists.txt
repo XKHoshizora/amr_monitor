@@ -8,13 +8,13 @@ project(amr_monitor)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  dynamic_reconfigure
-  geometry_msgs
-  nav_msgs
   roscpp
   rospy
-  sensor_msgs
   std_msgs
+  sensor_msgs
+  nav_msgs
+  geometry_msgs
+  dynamic_reconfigure
 )
 
 ## System dependencies are found with CMake's conventions
@@ -168,6 +168,10 @@ include_directories(
 #   scripts/my_python_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
+catkin_install_python(PROGRAMS
+  scripts/amr_monitor_node.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
@@ -189,6 +193,19 @@ include_directories(
 #   FILES_MATCHING PATTERN "*.h"
 #   PATTERN ".svn" EXCLUDE
 # )
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  FILES_MATCHING PATTERN "*.launch"
+)
+
+install(DIRECTORY config/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+  FILES_MATCHING PATTERN "*.yaml"
+)
+
+install(DIRECTORY resources/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/resources
+)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES

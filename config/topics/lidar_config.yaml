@@ -1,0 +1,41 @@
+lidar:
+  topic: "/scan"
+  msg_type: "sensor_msgs/LaserScan"
+  buffer_size: 500
+  update_rate: 20  # Hz
+
+  filters:
+    range:
+      type: "range"
+      min_range: 0.1
+      max_range: 30.0
+    angle:
+      type: "angle"
+      min_angle: -135
+      max_angle: 135
+    outlier:
+      type: "outlier"
+      threshold: 3.0
+      window_size: 5
+
+  clustering:
+    enabled: true
+    min_points: 5
+    distance_threshold: 0.1
+    colors:
+      - "#1f77b4"
+      - "#ff7f0e"
+      - "#2ca02c"
+      - "#d62728"
+      - "#9467bd"
+      - "#e377c2"
+
+  display:
+    point_size: 2
+    polar_view: true
+    show_intensity: true
+    show_clusters: true
+    grid:
+      show: true
+      color: "#808080"
+      alpha: 0.3

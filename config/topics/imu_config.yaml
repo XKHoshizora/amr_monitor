@@ -1,0 +1,54 @@
+imu:
+  topic: "/imu/data"
+  msg_type: "sensor_msgs/Imu"
+  buffer_size: 500
+  update_rate: 100  # Hz
+
+  filters:
+    angular_velocity:
+      type: "moving_average"
+      window_size: 5
+    linear_acceleration:
+      type: "moving_average"
+      window_size: 5
+    orientation:
+      type: "kalman"
+      process_noise: 0.01
+      measurement_noise: 0.1
+
+  plots:
+    angular_velocity:
+      title: "Angular Velocity"
+      x_label: "Time (s)"
+      y_label: "rad/s"
+      curves:
+        - name: "x"
+          color: "#1f77b4"
+        - name: "y"
+          color: "#ff7f0e"
+        - name: "z"
+          color: "#2ca02c"
+
+    linear_acceleration:
+      title: "Linear Acceleration"
+      x_label: "Time (s)"
+      y_label: "m/s²"
+      curves:
+        - name: "x"
+          color: "#1f77b4"
+        - name: "y"
+          color: "#ff7f0e"
+        - name: "z"
+          color: "#2ca02c"
+
+    orientation:
+      title: "Orientation"
+      x_label: "Time (s)"
+      y_label: "degrees"
+      curves:
+        - name: "roll"
+          color: "#1f77b4"
+        - name: "pitch"
+          color: "#ff7f0e"
+        - name: "yaw"
+          color: "#2ca02c"

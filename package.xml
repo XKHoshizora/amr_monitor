@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>amr_monitor</name>
-  <version>0.0.0</version>
-  <description>The amr_monitor package</description>
+  <version>1.0.0</version>
+  <description>AMR monitoring and debugging tool</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="rosnoetic@todo.todo">rosnoetic</maintainer>
+  <maintainer email="hoshizoranihon@gmail.com">Hoshizora</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -49,6 +49,8 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- ROS Dependencies -->
   <build_depend>dynamic_reconfigure</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>nav_msgs</build_depend>
@@ -56,6 +58,8 @@
   <build_depend>rospy</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
+  <build_depend>tf2</build_depend>
+  <build_depend>tf2_ros</build_depend>
   <build_export_depend>dynamic_reconfigure</build_export_depend>
   <build_export_depend>geometry_msgs</build_export_depend>
   <build_export_depend>nav_msgs</build_export_depend>
@@ -70,16 +74,28 @@
   <exec_depend>rospy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>tf2</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
 
-  <!-- Add -->
-  <exec_depend>python-qt5-bindings</exec_depend>
-  <exec_depend>python-numpy</exec_depend>
-  <exec_depend>python-pandas</exec_depend>
+  <!-- Python Dependencies -->
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-pandas</exec_depend>
+  <exec_depend>python3-pyside6</exec_depend>
+  <exec_depend>python3-pyqtgraph</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>python3-matplotlib</exec_depend>
+  <exec_depend>python3-psutil</exec_depend>
+  <exec_depend>python3-pytest</exec_depend>
+
+  <!-- Add test dependencies -->
+  <test_depend>rostest</test_depend>
+  <test_depend>python3-pytest</test_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
-
+    <rosdoc config="rosdoc.yaml"/>
   </export>
 </package>

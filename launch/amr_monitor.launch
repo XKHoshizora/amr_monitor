@@ -1,0 +1,29 @@
+<launch>
+    <!-- 加载全局参数 -->
+    <arg name="config_dir" default="$(find amr_monitor)/config" />
+    <arg name="theme" default="dark" />
+    <arg name="enable_data_storage" default="true" />
+    <arg name="enable_performance_monitoring" default="true" />
+
+    <!-- 加载主配置文件 -->
+    <rosparam command="load" file="$(find amr_monitor)/config/main_config.yaml" />
+
+    <!-- 加载话题配置文件 -->
+    <rosparam command="load" file="$(arg config_dir)/topics/imu_config.yaml" />
+    <rosparam command="load" file="$(arg config_dir)/topics/odom_config.yaml" />
+    <rosparam command="load" file="$(arg config_dir)/topics/lidar_config.yaml" />
+    <rosparam command="load" file="$(arg config_dir)/topics/cmd_vel_config.yaml" />
+
+    <!-- 加载其他配置文件 -->
+    <rosparam command="load" file="$(arg config_dir)/monitor_config.yaml" />
+    <rosparam command="load" file="$(arg config_dir)/performance_config.yaml" />
+    <rosparam command="load" file="$(arg config_dir)/ui_config.yaml" />
+
+    <!-- 启动监控节点 -->
+    <node pkg="amr_monitor" type="amr_monitor_node.py" name="amr_monitor" output="screen">
+        <param name="config_dir" value="$(arg config_dir)" />
+        <param name="theme" value="$(arg theme)" />
+        <param name="enable_data_storage" value="$(arg enable_data_storage)" />
+        <param name="enable_performance_monitoring" value="$(arg enable_performance_monitoring)" />
+    </node>
+</launch>

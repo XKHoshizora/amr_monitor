@@ -1,0 +1,29 @@
+ui:
+  theme:
+    current: "dark"
+    available: ["dark", "light"]
+    custom_css: "custom_theme.qss"
+
+  layout:
+    default_width: 1200
+    default_height: 800
+    save_layout: true
+    restore_layout: true
+
+  plots:
+    default_update_rate: 30
+    max_points: 1000
+    enable_anti_aliasing: true
+    enable_opengl: true
+
+  widgets:
+    font_size: 12
+    enable_tooltips: true
+    show_status_bar: true
+    show_toolbar: true
+
+  interaction:
+    enable_mouse_tracking: true
+    enable_keyboard_shortcuts: true
+    double_click_interval: 400
+    tooltip_delay: 500

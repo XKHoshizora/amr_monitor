@@ -1,0 +1,28 @@
+monitors:
+  update_interval: 0.1
+  save_data: true
+  data_dir: "../data"
+
+  common:
+    enable_statistics: true
+    enable_alerts: true
+    enable_data_export: true
+    enable_auto_reconnect: true
+    reconnect_interval: 1.0
+
+  persistence:
+    enable: true
+    format: "sqlite"
+    max_storage_days: 30
+    auto_cleanup: true
+
+  alerts:
+    log_level: "warn"
+    notification_level: "error"
+    alert_history_size: 100
+
+  statistics:
+    enable_timing: true
+    enable_frequency: true
+    enable_latency: true
+    window_size: 100
