@@ -1,19 +1,9 @@
-"""Monitor modules."""
-from .base_monitor import BaseMonitor, DataProcessor
-from .imu_monitor import IMUMonitor, IMUDataProcessor
-from .odom_monitor import OdomMonitor, OdomDataProcessor
-from .lidar_monitor import LidarMonitor, LidarDataProcessor
-from .cmd_vel_monitor import CmdVelMonitor, CmdVelDataProcessor
+import sys
+from pathlib import Path
 
-__all__ = [
-    'BaseMonitor',
-    'DataProcessor',
-    'IMUMonitor',
-    'IMUDataProcessor',
-    'OdomMonitor',
-    'OdomDataProcessor',
-    'LidarMonitor',
-    'LidarDataProcessor',
-    'CmdVelMonitor',
-    'CmdVelDataProcessor'
-]
+# 获取项目根目录路径
+project_root = Path(__file__).resolve().parents[3]
+
+# 将 src 目录添加到 sys.path 中
+src_path = project_root / "src"
+sys.path.append(str(src_path))

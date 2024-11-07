@@ -11,7 +11,6 @@
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
-   <!-- 控制面板 -->
    <item>
     <widget class="QFrame" name="controlFrame">
      <layout class="QHBoxLayout" name="horizontalLayout">
@@ -23,11 +22,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="topicComboBox">
-        <property name="minimumWidth">
-         <number>200</number>
-        </property>
-       </widget>
+       <widget class="QComboBox" name="topicComboBox"/>
       </item>
       <item>
        <widget class="QPushButton" name="refreshButton">
@@ -37,29 +32,12 @@
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="filteringCheckBox">
-        <property name="text">
-         <string>Enable Filtering</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="Line" name="line1">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QCheckBox" name="showTrajectoryCheckBox">
         <property name="text">
          <string>Show Trajectory</string>
         </property>
         <property name="checked">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -73,7 +51,13 @@
       <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>0</width>
+          <height>0</height>
+         </size>
         </property>
        </spacer>
       </item>
@@ -87,93 +71,85 @@
      </layout>
     </widget>
    </item>
-
-   <!-- 主显示区域 -->
    <item>
     <widget class="QSplitter" name="mainSplitter">
      <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+      <enum>Qt::Orientation::Horizontal</enum>
      </property>
-     <!-- 左侧轨迹显示 -->
      <widget class="QGroupBox" name="trajectoryGroup">
       <property name="title">
        <string>Robot Trajectory</string>
       </property>
       <layout class="QVBoxLayout" name="trajectoryLayout"/>
      </widget>
-     <!-- 右侧速度显示 -->
      <widget class="QFrame" name="rightFrame">
       <layout class="QVBoxLayout" name="rightLayout">
-        <!-- 当前速度状态 -->
-        <item>
-         <widget class="QGroupBox" name="currentVelGroup">
-          <property name="title">
-           <string>Current Velocity</string>
-          </property>
-          <layout class="QGridLayout" name="currentVelLayout">
-           <item row="0" column="0">
-            <widget class="QLabel" name="linearSpeedLabel">
-             <property name="text">
-              <string>Linear Speed:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QProgressBar" name="linearSpeedBar">
-             <property name="format">
-              <string>%v m/s</string>
-             </property>
-             <property name="maximum">
-              <number>100</number>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="angularSpeedLabel">
-             <property name="text">
-              <string>Angular Speed:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QProgressBar" name="angularSpeedBar">
-             <property name="format">
-              <string>%v rad/s</string>
-             </property>
-             <property name="maximum">
-              <number>100</number>
-             </property>
-            </widget>
-           </item>
-          </layout>
+       <item>
+        <widget class="QGroupBox" name="currentVelGroup">
+         <property name="title">
+          <string>Current Velocity</string>
+         </property>
+         <layout class="QGridLayout" name="currentVelLayout">
+          <item row="0" column="0">
+           <widget class="QLabel" name="linearSpeedLabel">
+            <property name="text">
+             <string>Linear Speed:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QProgressBar" name="linearSpeedBar">
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="format">
+             <string>%v m/s</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="angularSpeedLabel">
+            <property name="text">
+             <string>Angular Speed:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QProgressBar" name="angularSpeedBar">
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="format">
+             <string>%v rad/s</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTabWidget" name="velocityTabWidget">
+         <property name="currentIndex">
+          <number>1</number>
+         </property>
+         <widget class="QWidget" name="linearVelTab">
+          <attribute name="title">
+           <string>Linear Velocity</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="linearVelTabLayout"/>
          </widget>
-        </item>
-        <!-- 速度图表 -->
-        <item>
-         <widget class="QTabWidget" name="velocityTabWidget">
-          <property name="minimumHeight">
-           <number>300</number>
-          </property>
-          <widget class="QWidget" name="linearVelTab">
-           <attribute name="title">
-            <string>Linear Velocity</string>
-           </attribute>
-           <layout class="QVBoxLayout" name="linearVelTabLayout"/>
-          </widget>
-          <widget class="QWidget" name="angularVelTab">
-           <attribute name="title">
-            <string>Angular Velocity</string>
-           </attribute>
-           <layout class="QVBoxLayout" name="angularVelTabLayout"/>
-          </widget>
+         <widget class="QWidget" name="angularVelTab">
+          <attribute name="title">
+           <string>Angular Velocity</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="angularVelTabLayout"/>
          </widget>
-        </item>
+        </widget>
+       </item>
       </layout>
      </widget>
     </widget>
    </item>
-
-   <!-- 信息显示区域 -->
    <item>
     <widget class="QFrame" name="infoFrame">
      <layout class="QGridLayout" name="gridLayout">
@@ -208,8 +184,6 @@
      </layout>
     </widget>
    </item>
-
-   <!-- 状态栏 -->
    <item>
     <widget class="QStatusBar" name="statusBar"/>
    </item>

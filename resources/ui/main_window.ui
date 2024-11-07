@@ -16,9 +16,9 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QTabWidget" name="mainTabWidget">
+     <widget class="QTabWidget" name="monitorTab">
       <property name="currentIndex">
-       <number>3</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="odomTab">
        <attribute name="title">
@@ -40,8 +40,9 @@
       </widget>
       <widget class="QWidget" name="cmdvelTab">
        <attribute name="title">
-        <string>Cmd_Vel</string>
+        <string>CmdVel Monitor</string>
        </attribute>
+       <layout class="QVBoxLayout" name="cmdVelLayout"/>
       </widget>
      </widget>
     </item>
